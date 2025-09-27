@@ -6,6 +6,8 @@ import time
 from mfrc522 import SimpleMFRC522
 from RPi import GPIO
 
+from rfid_servo_lock.auth import save_password_to_env
+
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%S]", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -74,27 +76,38 @@ def write() -> None:
     rfid_reader = RFIDReader()
 
     logger.info("RFID Card Writer - Press Ctrl+C to exit")
-    logger.info("-" * 30)
+    logger.info("This will write a password to the card and save the hash to .env")
+    logger.info("-" * 50)
 
     try:
         while True:
-            text = input("Enter text to write to card (or 'quit' to exit): ").strip()
+            password = input("Enter password for RFID card (or 'quit' to exit): ").strip()
 
-            if text.lower() in ["quit", "q", "exit"]:
+            if password.lower() in ["quit", "q", "exit"]:
                 break
 
-            if text:
+            if password:
+                # Save the password hash to .env file
+                try:
+                    save_password_to_env(password)
+                    logger.info("Password hash saved to .env file")
+                except Exception:
+                    logger.exception("Failed to save password hash")
+                    continue
+
+                # Write the password to the RFID card
                 logger.info("Place the card on the reader...")
-                success = rfid_reader.write_card(text)
+                success = rfid_reader.write_card(password)
 
                 if success:
-                    logger.info(str(f"Successfully wrote: '{text}' to card"))
+                    logger.info("Successfully wrote password to card and saved hash to .env")
+                    logger.info("This card is now authorized for the lock system")
                 else:
-                    logger.info("Failed to write to card")
+                    logger.error("Failed to write password to card")
             else:
-                logger.info("Please enter some text to write")
+                logger.info("Password cannot be empty")
 
-            logger.info("-" * 30)
+            logger.info("-" * 50)
     except KeyboardInterrupt:
         logger.info("Exiting...")
     finally:
