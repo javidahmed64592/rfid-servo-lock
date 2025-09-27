@@ -33,9 +33,10 @@ class ServoLock:
         self.min_pulse = min_pulse
         self.max_pulse = max_pulse
         self.pwm = None
-        self.is_locked = True  # Assume starts in locked position
+        self.is_locked = True  # Will be set properly after initialization
 
         self._setup_gpio()
+        self._initialize_position()
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
@@ -60,6 +61,14 @@ class ServoLock:
         GPIO.output(self.pin, GPIO.LOW)
         self.pwm = GPIO.PWM(self.pin, self.frequency)
         self.pwm.start(0)
+
+    def _initialize_position(self) -> None:
+        """Initialize servo to locked position on startup."""
+        print("Initializing servo to locked position...")
+        self.set_angle(self.locked_angle)
+        self.is_locked = True
+        time.sleep(1)  # Give servo time to reach position
+        print(f"Servo initialized and locked at {self.locked_angle}°")
 
     def _map_value(
         self,

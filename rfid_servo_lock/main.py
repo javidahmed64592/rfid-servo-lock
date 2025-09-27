@@ -28,7 +28,9 @@ def run() -> None:
         print("Using BOARD mode - Servo on physical pin 12")
     else:
         servo_pin = 18  # BCM pin 18
-        print("Using BCM mode - Servo on BCM pin 18")  # Initialize servo with the correct pin for the detected mode
+        print("Using BCM mode - Servo on BCM pin 18")
+
+    # Initialize servo with the correct pin for the detected mode
     servo_lock = ServoLock(
         pin=servo_pin,  # Use mode-appropriate pin number
         locked_angle=0,  # Angle for locked position
@@ -36,7 +38,6 @@ def run() -> None:
     )
 
     print("System initialized successfully!")
-    print("- Servo is set to locked position")
     print("- Waiting for RFID cards...")
     print("- Press Ctrl+C to exit")
     print("-" * 40)
