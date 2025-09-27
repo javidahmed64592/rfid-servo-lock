@@ -49,9 +49,6 @@ def run() -> None:
                 if card_data[1]:
                     logger.info("Authorised!")
                     servo_lock.toggle()
-
-                    status = "LOCKED" if servo_lock.is_locked else "UNLOCKED"
-                    logger.info("Lock status changed to: %s", status)
                 else:
                     logger.warning("Unauthorised card detected! Access denied.")
 
