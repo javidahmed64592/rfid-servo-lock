@@ -126,3 +126,4 @@ def read() -> None:
         print("\nShutting down...")
     finally:
         rfid.cleanup()
+        print("Cleanup complete.")

@@ -39,6 +39,7 @@ repository = "https://github.com/javidahmed64592/template-python"
 rfid-lock = "rfid_servo_lock.main:run"
 rfid-read = "rfid_servo_lock.rfid:read"
 rfid-write = "rfid_servo_lock.rfid:write"
+servo-debug = "rfid_servo_lock.servo:debug"
 
 [tool.hatch.build]
 include = [

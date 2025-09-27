@@ -11,22 +11,20 @@ class ServoLock:
     def __init__(
         self,
         pin: int = 18,
-        locked_angle: float = 0,
-        unlocked_angle: float = 90,
+        locked_angle: int = 0,
+        unlocked_angle: int = 90,
         frequency: int = 50,
         min_pulse: int = 500,
         max_pulse: int = 2500,
     ) -> None:
         """Initialize the servo lock.
 
-        Args:
-            pin: GPIO pin number for servo control.
-            locked_angle: Angle for locked position (0-180 degrees).
-            unlocked_angle: Angle for unlocked position (0-180 degrees).
-            frequency: PWM frequency in Hz.
-            min_pulse: Minimum pulse width in microseconds.
-            max_pulse: Maximum pulse width in microseconds.
-
+        :param int pin: GPIO pin number for servo control.
+        :param int locked_angle: Angle for locked position (0-180 degrees).
+        :param int unlocked_angle: Angle for unlocked position (0-180 degrees).
+        :param int frequency: PWM frequency in Hz.
+        :param int min_pulse: Minimum pulse width in microseconds.
+        :param int max_pulse: Maximum pulse width in microseconds.
         """
         self.pin = pin
         self.locked_angle = locked_angle
@@ -58,12 +56,10 @@ class ServoLock:
         """Map a value from one range to another."""
         return (out_max - out_min) * (value - in_min) / (in_max - in_min) + out_min
 
-    def set_angle(self: "ServoLock", angle: float) -> None:
+    def set_angle(self, angle: int) -> None:
         """Set the servo to a specific angle.
 
-        Args:
-            angle: Target angle (0-180 degrees).
-
+        :param int angle: Target angle (0-180 degrees).
         """
         # Clamp angle to valid range
         angle = max(0, min(180, angle))
@@ -99,27 +95,6 @@ class ServoLock:
         else:
             self.lock()
 
-    def sweep_test(self) -> None:
-        """Perform a sweep test of the servo for debugging."""
-        print("Performing servo sweep test...")
-
-        # Sweep from 0 to 180 degrees
-        for angle in range(0, 181, 5):
-            self.set_angle(angle)
-            time.sleep(0.02)
-
-        time.sleep(1)
-
-        # Sweep from 180 to 0 degrees
-        for angle in range(180, -1, -5):
-            self.set_angle(angle)
-            time.sleep(0.01)
-
-        time.sleep(1)
-
-        # Return to locked position
-        self.lock()
-
     def cleanup(self) -> None:
         """Clean up GPIO resources."""
         if self.pwm:
@@ -127,7 +102,7 @@ class ServoLock:
         GPIO.cleanup()
 
 
-def main() -> None:
+def debug() -> None:
     """Demonstrate servo lock functionality."""
     # Create servo lock with default settings
     servo_lock = ServoLock()
@@ -142,18 +117,13 @@ def main() -> None:
                 servo_lock.unlock()
             elif command == "toggle":
                 servo_lock.toggle()
-            elif command == "sweep":
-                servo_lock.sweep_test()
             elif command in ["quit", "q", "exit"]:
                 break
             else:
-                print("Invalid command. Use: lock, unlock, toggle, sweep, or quit")
+                print("Invalid command. Use: lock, unlock, toggle, or quit")
 
     except KeyboardInterrupt:
         print("\nShutting down...")
     finally:
         servo_lock.cleanup()
-
-
-if __name__ == "__main__":
-    main()
+        print("Cleanup complete.")
