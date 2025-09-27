@@ -6,7 +6,7 @@ from rfid_servo_lock.rfid import RFIDReader
 from rfid_servo_lock.servo import ServoLock
 
 
-def main() -> None:
+def run() -> None:
     """Run the RFID-controlled servo lock system."""
     print("Initializing RFID Servo Lock System...")
 
@@ -31,7 +31,7 @@ def main() -> None:
 
             if card_data:
                 card_id, text = card_data
-                print(f"RFID Card detected!")
+                print("RFID Card detected!")
                 print(f"Card ID: {card_id}")
 
                 # Toggle lock state when any card is detected
@@ -57,7 +57,3 @@ def main() -> None:
         servo_lock.cleanup()
         rfid_reader.cleanup()
         print("System shutdown complete.")
-
-
-if __name__ == "__main__":
-    main()
