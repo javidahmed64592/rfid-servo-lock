@@ -1,6 +1,6 @@
 """Unit tests for the example.main module."""
 
-from example.main import example_function
+from rfid_servo_lock.main import example_function
 
 
 def test_example_function() -> None:
