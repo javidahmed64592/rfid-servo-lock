@@ -48,7 +48,6 @@ def run() -> None:
 
             if card_data:
                 card_id, card_password = card_data
-                logger.info("RFID Card detected! ID: %s", card_id)
 
                 # Verify the card password against stored hash
                 if verify_card_authorization(card_id, card_password):

@@ -127,13 +127,17 @@ def verify_card_authorization(card_id: int, card_password: str, env_file: str = 
     logger.info("Checking authorization for card ID: %s", card_id)
     logger.info("Card password: '%s'", card_password)
 
+    # Strip whitespace from card password (RFID cards often have padding)
+    cleaned_password = card_password.strip()
+    logger.info("Cleaned password: '%s'", cleaned_password)
+
     stored_hash = load_card_hash(card_id, env_file)
 
     if not stored_hash:
         logger.error("No stored hash found for card %s - access denied", card_id)
         return False
 
-    return verify_password_with_card_id(card_password, card_id, stored_hash)
+    return verify_password_with_card_id(cleaned_password, card_id, stored_hash)
 
 
 def debug() -> None:
