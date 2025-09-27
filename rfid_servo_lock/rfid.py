@@ -71,10 +71,6 @@ class RFIDReader:
         else:
             return None
 
-    def cleanup(self) -> None:
-        """Clean up GPIO resources."""
-        GPIO.cleanup()
-
 
 def write() -> None:
     """Write data to RFID cards using the RFIDReader class."""
@@ -107,7 +103,7 @@ def write() -> None:
     except KeyboardInterrupt:
         print("\nExiting...")
     finally:
-        rfid_reader.cleanup()
+        GPIO.cleanup()
         print("Cleanup complete.")
 
 
@@ -123,7 +119,7 @@ def read() -> None:
                 print(f"ID: {card_id}\nText: {text}")
             time.sleep(3)
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        print("\nExiting...")
     finally:
-        rfid.cleanup()
+        GPIO.cleanup()
         print("Cleanup complete.")

@@ -2,6 +2,8 @@
 
 import time
 
+from RPi import GPIO
+
 from rfid_servo_lock.rfid import RFIDReader
 from rfid_servo_lock.servo import ServoLock
 
@@ -56,4 +58,5 @@ def run() -> None:
         print("Cleaning up...")
         servo_lock.cleanup()
         rfid_reader.cleanup()
+        GPIO.cleanup()
         print("System shutdown complete.")

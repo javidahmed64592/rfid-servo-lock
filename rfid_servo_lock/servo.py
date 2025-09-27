@@ -39,7 +39,20 @@ class ServoLock:
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
-        GPIO.setmode(GPIO.BCM)
+        # Check if GPIO mode is already set
+        try:
+            current_mode = GPIO.getmode()
+            if current_mode is None:
+                GPIO.setmode(GPIO.BCM)
+            elif current_mode != GPIO.BCM:
+                print(f"Warning: GPIO already set to mode {current_mode}, continuing...")
+        except Exception:
+            # If getmode fails, try to set BCM mode
+            try:
+                GPIO.setmode(GPIO.BCM)
+            except ValueError:
+                print("Warning: GPIO mode already set, continuing...")
+
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
         self.pwm = GPIO.PWM(self.pin, self.frequency)
@@ -96,10 +109,10 @@ class ServoLock:
             self.lock()
 
     def cleanup(self) -> None:
-        """Clean up GPIO resources."""
+        """Clean up PWM resources (GPIO cleanup handled by main application)."""
         if self.pwm:
             self.pwm.stop()
-        GPIO.cleanup()
+            self.pwm = None
 
 
 def debug() -> None:
@@ -126,4 +139,5 @@ def debug() -> None:
         print("\nShutting down...")
     finally:
         servo_lock.cleanup()
+        GPIO.cleanup()
         print("Cleanup complete.")
