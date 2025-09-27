@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rfid-servo-lock"
 version = "0.1.0"
-description = "An example pyproject.toml."
+description = "A Raspberry Pi-based RFID-controlled servo motor lock system."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
@@ -18,7 +18,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "numpy",
+    "RPi.GPIO>=0.7.1",
+    "mfrc522>=0.0.7",
 ]
 
 [project.optional-dependencies]
@@ -141,6 +142,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
-    "numpy.*",
+    "RPi.*",
+    "mfrc522.*",
 ]
 ignore_missing_imports = true
