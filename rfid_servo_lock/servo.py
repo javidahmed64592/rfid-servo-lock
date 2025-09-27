@@ -1,8 +1,12 @@
 """Servo motor control module for lock/unlock operations."""
 
+import logging
 import time
 
 from RPi import GPIO
+
+logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%S]", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ServoLock:
@@ -33,18 +37,17 @@ class ServoLock:
         self.min_pulse = min_pulse
         self.max_pulse = max_pulse
         self.pwm = None
-        self.is_locked = True  # Will be set properly after initialization
+        self.is_locked = True
 
         self._setup_gpio()
         self._initialize_position()
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
-        # Get the current GPIO mode (should already be set by RFID)
         current_mode = GPIO.getmode()
 
         if current_mode is None:
-            print("No GPIO mode set, defaulting to BCM")
+            logger.info("No GPIO mode set, defaulting to BCM.")
             GPIO.setmode(GPIO.BCM)
             mode_name = "BCM"
         elif current_mode == GPIO.BCM:
@@ -54,9 +57,8 @@ class ServoLock:
         else:
             mode_name = f"Unknown ({current_mode})"
 
-        print(f"Servo using GPIO mode: {mode_name}, Pin: {self.pin}")
+        logger.info(str(f"Servo using GPIO mode {mode_name} & Pin {self.pin}."))
 
-        # Set up the servo pin
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
         self.pwm = GPIO.PWM(self.pin, self.frequency)
@@ -64,14 +66,12 @@ class ServoLock:
 
     def _initialize_position(self) -> None:
         """Initialize servo to locked position on startup."""
-        print("Initializing servo to locked position...")
-        self.set_angle(self.locked_angle)
-        self.is_locked = True
-        time.sleep(1)  # Give servo time to reach position
-        print(f"Servo initialized and locked at {self.locked_angle}°")
+        logger.info("Initializing servo to locked position...")
+        self.lock()
+        logger.info(str(f"Servo initialized and locked at {self.locked_angle}°"))
 
+    @staticmethod
     def _map_value(
-        self,
         value: float,
         in_min: float,
         in_max: float,
@@ -86,32 +86,25 @@ class ServoLock:
 
         :param int angle: Target angle (0-180 degrees).
         """
-        # Clamp angle to valid range
         angle = max(0, min(180, angle))
-
-        # Convert angle to pulse width
         pulse_width = self._map_value(angle, 0, 180, self.min_pulse, self.max_pulse)
-
-        # Convert pulse width to duty cycle
         duty_cycle = self._map_value(pulse_width, 0, 20000, 0, 100)
 
-        # Apply to servo
         if self.pwm:
             self.pwm.ChangeDutyCycle(duty_cycle)
+            time.sleep(0.5)  # Allow time for servo to reach position
 
     def lock(self) -> None:
         """Lock the mechanism by moving to locked position."""
-        print("Locking...")
+        logger.info("Locking...")
         self.set_angle(self.locked_angle)
         self.is_locked = True
-        time.sleep(0.5)  # Allow time for servo to reach position
 
     def unlock(self) -> None:
         """Unlock the mechanism by moving to unlocked position."""
-        print("Unlocking...")
+        logger.info("Unlocking...")
         self.set_angle(self.unlocked_angle)
         self.is_locked = False
-        time.sleep(0.5)  # Allow time for servo to reach position
 
     def toggle(self) -> None:
         """Toggle between locked and unlocked states."""
@@ -129,12 +122,10 @@ class ServoLock:
 
 def debug() -> None:
     """Demonstrate servo lock functionality."""
-    # Set GPIO mode explicitly for standalone testing
     GPIO.setmode(GPIO.BCM)
-    print("Standalone servo test - using BCM mode")
+    logger.info("Standalone servo test - using BCM mode.")
 
-    # Create servo lock with BCM pin 18
-    servo_lock = ServoLock(pin=18)
+    servo_lock = ServoLock()
 
     try:
         while True:
@@ -149,11 +140,11 @@ def debug() -> None:
             elif command in ["quit", "q", "exit"]:
                 break
             else:
-                print("Invalid command. Use: lock, unlock, toggle, or quit")
+                logger.warning("Invalid command. Use: lock, unlock, toggle, or quit")
 
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        logger.info("Exiting...")
     finally:
         servo_lock.cleanup()
         GPIO.cleanup()
-        print("Cleanup complete.")
+        logger.info("Cleanup complete.")
