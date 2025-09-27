@@ -124,10 +124,6 @@ def verify_card_authorization(card_id: int, card_password: str, env_file: str = 
     :param str env_file: Path to the environment file.
     :return: True if authorized, False otherwise.
     """
-    logger.info("Checking authorization for card ID: %s", card_id)
-    logger.info("Card password: '%s'", card_password)
-
-    # Strip whitespace from card password (RFID cards often have padding)
     cleaned_password = card_password.strip()
     logger.info("Cleaned password: '%s'", cleaned_password)
 
@@ -138,38 +134,3 @@ def verify_card_authorization(card_id: int, card_password: str, env_file: str = 
         return False
 
     return verify_password_with_card_id(cleaned_password, card_id, stored_hash)
-
-
-def debug() -> None:
-    """Interactive card authorization setup for testing."""
-    logger.info("RFID Card Authorization Setup")
-    logger.info("-" * 35)
-
-    try:
-        card_id = int(input("Enter card ID: ").strip())
-    except ValueError:
-        logger.exception("Invalid card ID - must be a number!")
-        return
-
-    password = input("Enter password for this card: ").strip()
-
-    if not password:
-        print("Password cannot be empty")
-        return
-
-    # Hash the password with card ID as salt
-    hashed_password = hash_password_with_card_id(password, card_id)
-
-    print(f"\nCard ID: {card_id}")
-    print(f"Password: {password}")
-    print(f"Hash: {hashed_password}")
-
-    # Test verification
-    is_valid = verify_password_with_card_id(password, card_id, hashed_password)
-    print(f"Verification test: {'PASSED' if is_valid else 'FAILED'}")
-
-    # Offer to save to .env
-    save_choice = input("\nSave to .env file? (y/n): ").strip().lower()
-    if save_choice in ["y", "yes"]:
-        save_authorized_card(card_id, password)
-        print(f"Card {card_id} authorization saved to .env file")
