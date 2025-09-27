@@ -6,7 +6,7 @@ import time
 from mfrc522 import SimpleMFRC522
 from RPi import GPIO
 
-from rfid_servo_lock.auth import save_password_to_env
+from rfid_servo_lock.auth import save_authorized_card
 
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%S]", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,7 +40,6 @@ class RFIDReader:
         :return: True if write successful, False otherwise.
         """
         try:
-            logger.info("Place card on the reader...")
             self.reader.write(text)
             logger.info("Data writing is complete")
         except Exception:
@@ -87,25 +86,34 @@ def write() -> None:
                 break
 
             if password:
-                # Save the password hash to .env file
+                logger.info("Place the card on the reader to get its ID...")
+                card_data = rfid_reader.read_card()
+
+                if not card_data:
+                    logger.error("Failed to read card ID!")
+                    continue
+
+                card_id, _ = card_data
+                logger.info("Card ID detected: %s", card_id)
+
+                # Save the password hash with card ID as salt to .env file
                 try:
-                    save_password_to_env(password)
-                    logger.info("Password hash saved to .env file")
+                    save_authorized_card(card_id, password)
+                    logger.info("Password hash saved for card %s", card_id)
                 except Exception:
                     logger.exception("Failed to save password hash")
                     continue
 
                 # Write the password to the RFID card
-                logger.info("Place the card on the reader...")
+                logger.info("Now place the card back on the reader to write the password...")
                 success = rfid_reader.write_card(password)
 
                 if success:
-                    logger.info("Successfully wrote password to card and saved hash to .env")
-                    logger.info("This card is now authorized for the lock system")
+                    logger.info("Card %s is now authorized for the lock system.", card_id)
                 else:
-                    logger.error("Failed to write password to card")
+                    logger.error("Failed to write password to card!")
             else:
-                logger.info("Password cannot be empty")
+                logger.error("Password cannot be empty!")
 
             logger.info("-" * 50)
     except KeyboardInterrupt:

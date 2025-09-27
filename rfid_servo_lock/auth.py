@@ -9,62 +9,59 @@ logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%
 logger = logging.getLogger(__name__)
 
 
-def generate_salt() -> str:
-    """Generate a cryptographically secure random salt.
-
-    :return: Base64-encoded salt string.
-    """
-    return secrets.token_hex(32)
-
-
-def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
-    """Hash a password with a salt using SHA-256.
+def hash_password_with_card_id(password: str, card_id: int) -> str:
+    """Hash a password using the card ID as salt.
 
     :param str password: The password to hash.
-    :param str salt: Optional salt to use. If None, generates a new salt.
-    :return: Tuple of (hashed_password, salt).
+    :param int card_id: The RFID card ID to use as salt.
+    :return: The hashed password.
     """
-    if salt is None:
-        salt = generate_salt()
+    # Convert card ID to string and use as salt
+    salt = str(card_id)
 
-    # Combine password and salt, then hash
+    # Combine password and card ID salt, then hash
     password_salt = f"{password}{salt}"
     hash_object = hashlib.sha256(password_salt.encode())
     hashed_password = hash_object.hexdigest()
 
-    logger.info("Password hashed successfully")
-    return hashed_password, salt
+    logger.info("Password hashed with card ID %s as salt", card_id)
+    return hashed_password
 
 
-def verify_password(password: str, stored_hash: str, stored_salt: str) -> bool:
-    """Verify a password against a stored hash and salt.
+def verify_password_with_card_id(password: str, card_id: int, stored_hash: str) -> bool:
+    """Verify a password against a stored hash using card ID as salt.
 
     :param str password: The password to verify.
+    :param int card_id: The RFID card ID to use as salt.
     :param str stored_hash: The stored password hash.
-    :param str stored_salt: The stored salt.
     :return: True if password matches, False otherwise.
     """
-    # Hash the provided password with the stored salt
-    test_hash, _ = hash_password(password, stored_salt)
+    # Hash the provided password with the card ID as salt
+    test_hash = hash_password_with_card_id(password, card_id)
+
+    logger.info("Verifying password for card ID: %s", card_id)
+    logger.info("Expected hash: %s", stored_hash)
+    logger.info("Computed hash: %s", test_hash)
 
     # Compare hashes using secure comparison to prevent timing attacks
     is_valid = secrets.compare_digest(test_hash, stored_hash)
 
     if is_valid:
-        logger.info("Password verification successful")
+        logger.info("Password verification successful for card %s", card_id)
     else:
-        logger.warning("Password verification failed")
+        logger.warning("Password verification failed for card %s", card_id)
 
     return is_valid
 
 
-def save_password_to_env(password: str, env_file: str = ".env") -> None:
-    """Hash a password and save it to an environment file.
+def save_authorized_card(card_id: int, password: str, env_file: str = ".env") -> None:
+    """Hash a password with card ID and save to environment file.
 
+    :param int card_id: The RFID card ID.
     :param str password: The password to hash and save.
     :param str env_file: Path to the environment file.
     """
-    hashed_password, salt = hash_password(password)
+    hashed_password = hash_password_with_card_id(password, card_id)
 
     # Read existing env file content
     env_content = {}
@@ -76,97 +73,99 @@ def save_password_to_env(password: str, env_file: str = ".env") -> None:
                     key, value = stripped_line.split("=", 1)
                     env_content[key.strip()] = value.strip()
 
-    # Update with new password hash and salt
-    env_content["RFID_PASSWORD_HASH"] = hashed_password
-    env_content["RFID_PASSWORD_SALT"] = salt
+    # Update with new password hash for this card ID
+    env_content[f"RFID_CARD_{card_id}_HASH"] = hashed_password
 
     # Write back to file
     with open(env_file, "w") as f:
         f.write("# RFID Servo Lock Environment Configuration\n")
-        f.write("# Generated automatically - do not edit manually\n\n")
+        f.write("# Card authorization hashes (card ID used as salt)\n\n")
         for key, value in env_content.items():
             f.write(f"{key}={value}\n")
 
-    logger.info("Password hash saved to %s", env_file)
+    logger.info("Card %s authorization saved to %s", card_id, env_file)
 
 
-def load_password_from_env(env_file: str = ".env") -> tuple[str, str] | None:
-    """Load password hash and salt from environment file.
+def load_card_hash(card_id: int, env_file: str = ".env") -> str | None:
+    """Load password hash for a specific card ID from environment file.
 
+    :param int card_id: The RFID card ID.
     :param str env_file: Path to the environment file.
-    :return: Tuple of (hash, salt) if found, None otherwise.
+    :return: The stored hash if found, None otherwise.
     """
     if not os.path.exists(env_file):
         logger.warning("Environment file %s not found", env_file)
         return None
 
-    password_hash = None
-    password_salt = None
+    env_var = f"RFID_CARD_{card_id}_HASH"
 
     try:
         with open(env_file) as f:
             for line in f:
                 stripped_line = line.strip()
-                if stripped_line.startswith("RFID_PASSWORD_HASH="):
-                    password_hash = stripped_line.split("=", 1)[1].strip()
-                elif stripped_line.startswith("RFID_PASSWORD_SALT="):
-                    password_salt = stripped_line.split("=", 1)[1].strip()
+                if stripped_line.startswith(f"{env_var}="):
+                    stored_hash = stripped_line.split("=", 1)[1].strip()
+                    logger.info("Hash loaded for card %s from %s", card_id, env_file)
+                    return stored_hash
 
-        if password_hash and password_salt:
-            logger.info("Password credentials loaded from %s", env_file)
-            return password_hash, password_salt
+        logger.warning("No hash found for card %s in %s", card_id, env_file)
     except Exception:
-        logger.exception("Error loading password credentials from %s", env_file)
+        logger.exception("Error loading hash for card %s from %s", card_id, env_file)
         return None
     else:
-        logger.warning("Password credentials not found in %s", env_file)
         return None
 
 
-def verify_card_password(card_password: str, env_file: str = ".env") -> bool:
-    """Verify a card password against stored credentials.
+def verify_card_authorization(card_id: int, card_password: str, env_file: str = ".env") -> bool:
+    """Verify a card's password authorization.
 
+    :param int card_id: The RFID card ID.
     :param str card_password: The password from the RFID card.
     :param str env_file: Path to the environment file.
     :return: True if authorized, False otherwise.
     """
-    credentials = load_password_from_env(env_file)
+    logger.info("Checking authorization for card ID: %s", card_id)
+    logger.info("Card password: '%s'", card_password)
 
-    if not credentials:
-        logger.error("No stored credentials found - card denied")
+    stored_hash = load_card_hash(card_id, env_file)
+
+    if not stored_hash:
+        logger.error("No stored hash found for card %s - access denied", card_id)
         return False
 
-    stored_hash, stored_salt = credentials
-    return verify_password(card_password, stored_hash, stored_salt)
+    return verify_password_with_card_id(card_password, card_id, stored_hash)
 
 
-def main() -> None:
-    """Interactive password hash generator for testing."""
-    print("RFID Password Hash Generator")
-    print("-" * 30)
+def debug() -> None:
+    """Interactive card authorization setup for testing."""
+    logger.info("RFID Card Authorization Setup")
+    logger.info("-" * 35)
 
-    password = input("Enter password to hash: ").strip()
+    try:
+        card_id = int(input("Enter card ID: ").strip())
+    except ValueError:
+        logger.exception("Invalid card ID - must be a number!")
+        return
+
+    password = input("Enter password for this card: ").strip()
 
     if not password:
         print("Password cannot be empty")
         return
 
-    hashed_password, salt = hash_password(password)
+    # Hash the password with card ID as salt
+    hashed_password = hash_password_with_card_id(password, card_id)
 
-    print(f"\nPassword: {password}")
+    print(f"\nCard ID: {card_id}")
+    print(f"Password: {password}")
     print(f"Hash: {hashed_password}")
-    print(f"Salt: {salt}")
 
     # Test verification
-    is_valid = verify_password(password, hashed_password, salt)
+    is_valid = verify_password_with_card_id(password, card_id, hashed_password)
     print(f"Verification test: {'PASSED' if is_valid else 'FAILED'}")
 
     # Offer to save to .env
     save_choice = input("\nSave to .env file? (y/n): ").strip().lower()
     if save_choice in ["y", "yes"]:
-        save_password_to_env(password)
-        print("Password saved to .env file")
-
-
-if __name__ == "__main__":
-    main()
+        save_authorized_card(card_id, password)
+        print(f"Card {card_id} authorization saved to .env file")

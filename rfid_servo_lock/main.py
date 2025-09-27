@@ -5,7 +5,7 @@ import time
 
 from RPi import GPIO
 
-from rfid_servo_lock.auth import verify_card_password
+from rfid_servo_lock.auth import verify_card_authorization
 from rfid_servo_lock.rfid import RFIDReader
 from rfid_servo_lock.servo import ServoLock
 
@@ -51,7 +51,7 @@ def run() -> None:
                 logger.info("RFID Card detected! ID: %s", card_id)
 
                 # Verify the card password against stored hash
-                if verify_card_password(card_password):
+                if verify_card_authorization(card_id, card_password):
                     logger.info("Card authorized! Access granted.")
                     servo_lock.toggle()
                 else:
