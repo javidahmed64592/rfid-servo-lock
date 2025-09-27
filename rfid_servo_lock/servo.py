@@ -96,15 +96,17 @@ class ServoLock:
 
     def lock(self) -> None:
         """Lock the mechanism by moving to locked position."""
-        logger.info("Locking...")
-        self.set_angle(self.locked_angle)
-        self.is_locked = True
+        if not self.is_locked:
+            logger.info("Locking...")
+            self.set_angle(self.locked_angle)
+            self.is_locked = True
 
     def unlock(self) -> None:
         """Unlock the mechanism by moving to unlocked position."""
-        logger.info("Unlocking...")
-        self.set_angle(self.unlocked_angle)
-        self.is_locked = False
+        if self.is_locked:
+            logger.info("Unlocking...")
+            self.set_angle(self.unlocked_angle)
+            self.is_locked = False
 
     def toggle(self) -> None:
         """Toggle between locked and unlocked states."""
