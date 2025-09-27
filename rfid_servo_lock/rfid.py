@@ -95,7 +95,6 @@ def write() -> None:
                 logger.info("Please enter some text to write")
 
             logger.info("-" * 30)
-
     except KeyboardInterrupt:
         logger.info("Exiting...")
     finally:
