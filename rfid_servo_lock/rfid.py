@@ -23,7 +23,6 @@ class RFIDReader:
         :return: Tuple of (card_id, text) if card is detected, None otherwise.
         """
         try:
-            logger.info("Ready to read RFID card...")
             card_id, text = self.reader.read()
             logger.info(str(f"Card detected - ID: {card_id}"))
         except Exception:
@@ -58,6 +57,7 @@ def read() -> None:
 
     try:
         while True:
+            logger.info("Place the card on the reader...")
             card_data = rfid.read_card()
             if card_data:
                 logger.info(str(f"Text: {card_data[1]}"))
@@ -84,7 +84,7 @@ def write() -> None:
                 break
 
             if text:
-                logger.info("Please place the card on the reader...")
+                logger.info("Place the card on the reader...")
                 success = rfid_reader.write_card(text)
 
                 if success:
