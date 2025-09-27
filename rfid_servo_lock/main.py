@@ -72,6 +72,5 @@ def run() -> None:
         # Clean up resources
         print("Cleaning up...")
         servo_lock.cleanup()
-        rfid_reader.cleanup()
         GPIO.cleanup()
         print("System shutdown complete.")
