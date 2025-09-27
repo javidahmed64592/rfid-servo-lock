@@ -48,14 +48,6 @@ class RFIDReader:
         else:
             return True
 
-    def wait_for_card(self) -> tuple[int, str] | None:
-        """Wait for a card to be detected (blocking).
-
-        :return: Tuple of (card_id, text) if card is detected, None on error.
-        """
-        logger.info("Waiting for RFID card...")
-        return self.read_card()
-
 
 def read() -> None:
     """Read data from RFID cards using the RFIDReader class."""

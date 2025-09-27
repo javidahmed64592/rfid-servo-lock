@@ -92,7 +92,7 @@ class ServoLock:
 
         if self.pwm:
             self.pwm.ChangeDutyCycle(duty_cycle)
-            time.sleep(0.5)  # Allow time for servo to reach position
+            time.sleep(0.5)
 
     def lock(self) -> None:
         """Lock the mechanism by moving to locked position."""
