@@ -35,6 +35,18 @@ dev = [
 [project.urls]
 repository = "https://github.com/javidahmed64592/template-python"
 
+[project.scripts]
+rfid-lock = "rfid_servo_lock.main:run"
+rfid-read = "rfid_servo_lock.rfid:read"
+rfid-write = "rfid_servo_lock.rfid:write"
+
+[tool.hatch.build]
+include = [
+  "README.md",
+  "LICENSE",
+  "rfid_servo_lock/**",
+]
+
 [tool.pytest.ini_options]
 addopts = [
     "-vv",

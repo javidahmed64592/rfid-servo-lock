@@ -16,9 +16,7 @@ class RFIDReader:
     def read_card(self) -> tuple[int, str] | None:
         """Read data from an RFID card.
 
-        Returns:
-            Tuple of (card_id, text) if card is detected, None otherwise.
-
+        :return: Tuple of (card_id, text) if card is detected, None otherwise.
         """
         try:
             print("Reading... Please place the card...")
@@ -33,12 +31,8 @@ class RFIDReader:
     def write_card(self, text: str) -> bool:
         """Write data to an RFID card.
 
-        Args:
-            text: The text to write to the card.
-
-        Returns:
-            True if write successful, False otherwise.
-
+        :param str text: The text to write to the card.
+        :return: True if write successful, False otherwise.
         """
         try:
             print("Please place the card to complete writing...")
@@ -50,15 +44,11 @@ class RFIDReader:
         else:
             return True
 
-    def wait_for_card(self, timeout: float = 1.0) -> tuple[int, str] | None:
+    def wait_for_card(self, timeout: int = 1) -> tuple[int, str] | None:
         """Wait for a card to be detected with a timeout.
 
-        Args:
-            timeout: Maximum time to wait for card detection in seconds.
-
-        Returns:
-            Tuple of (card_id, text) if card is detected within timeout, None otherwise.
-
+        :param int timeout: Maximum time to wait for card detection in seconds.
+        :return: Tuple of (card_id, text) if card is detected within timeout, None otherwise.
         """
         try:
             # Non-blocking read attempt
@@ -86,8 +76,43 @@ class RFIDReader:
         GPIO.cleanup()
 
 
-def main() -> None:
-    """Example usage of RFIDReader class."""
+def write() -> None:
+    """Write data to RFID cards using the RFIDReader class."""
+    rfid_reader = RFIDReader()
+
+    print("RFID Card Writer")
+    print("Press Ctrl+C to exit")
+    print("-" * 30)
+
+    try:
+        while True:
+            text = input("Enter text to write to card (or 'quit' to exit): ").strip()
+
+            if text.lower() in ["quit", "q", "exit"]:
+                break
+
+            if text:
+                print("Please place the card on the reader...")
+                success = rfid_reader.write_card(text)
+
+                if success:
+                    print(f"Successfully wrote: '{text}' to card")
+                else:
+                    print("Failed to write to card")
+            else:
+                print("Please enter some text to write")
+
+            print("-" * 30)
+
+    except KeyboardInterrupt:
+        print("\nExiting...")
+    finally:
+        rfid_reader.cleanup()
+        print("Cleanup complete.")
+
+
+def read() -> None:
+    """Read data from RFID cards using the RFIDReader class."""
     rfid = RFIDReader()
 
     try:
@@ -101,7 +126,3 @@ def main() -> None:
         print("\nShutting down...")
     finally:
         rfid.cleanup()
-
-
-if __name__ == "__main__":
-    main()
