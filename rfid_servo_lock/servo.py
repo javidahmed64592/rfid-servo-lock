@@ -39,20 +39,23 @@ class ServoLock:
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
-        # Check if GPIO mode is already set
-        try:
-            current_mode = GPIO.getmode()
-            if current_mode is None:
-                GPIO.setmode(GPIO.BCM)
-            elif current_mode != GPIO.BCM:
-                print(f"Warning: GPIO already set to mode {current_mode}, continuing...")
-        except Exception:
-            # If getmode fails, try to set BCM mode
-            try:
-                GPIO.setmode(GPIO.BCM)
-            except ValueError:
-                print("Warning: GPIO mode already set, continuing...")
+        # Get the current GPIO mode (should already be set by RFID)
+        current_mode = GPIO.getmode()
 
+        if current_mode is None:
+            print("No GPIO mode set, defaulting to BCM")
+            GPIO.setmode(GPIO.BCM)
+            mode_name = "BCM"
+        elif current_mode == GPIO.BCM:
+            mode_name = "BCM"
+        elif current_mode == GPIO.BOARD:
+            mode_name = "BOARD"
+        else:
+            mode_name = f"Unknown ({current_mode})"
+
+        print(f"Servo using GPIO mode: {mode_name}, Pin: {self.pin}")
+
+        # Set up the servo pin
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
         self.pwm = GPIO.PWM(self.pin, self.frequency)
@@ -117,8 +120,12 @@ class ServoLock:
 
 def debug() -> None:
     """Demonstrate servo lock functionality."""
-    # Create servo lock with default settings
-    servo_lock = ServoLock()
+    # Set GPIO mode explicitly for standalone testing
+    GPIO.setmode(GPIO.BCM)
+    print("Standalone servo test - using BCM mode")
+
+    # Create servo lock with BCM pin 18
+    servo_lock = ServoLock(pin=18)
 
     try:
         while True:

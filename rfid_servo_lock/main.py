@@ -12,10 +12,25 @@ def run() -> None:
     """Run the RFID-controlled servo lock system."""
     print("Initializing RFID Servo Lock System...")
 
-    # Initialize hardware components
+    # Initialize RFID reader first (this sets the GPIO mode)
     rfid_reader = RFIDReader()
+
+    # Get the current GPIO mode that was set by RFID
+    current_gpio_mode = GPIO.getmode()
+    print(f"GPIO mode detected: {current_gpio_mode}")
+
+    # Convert pin number based on detected mode
+    # Pin mapping reference:
+    # - BCM Pin 18 = Physical Pin 12 = BOARD Pin 12
+    # - This is GPIO18 on the Raspberry Pi
+    if current_gpio_mode == GPIO.BOARD:
+        servo_pin = 12  # Physical pin 12
+        print("Using BOARD mode - Servo on physical pin 12")
+    else:
+        servo_pin = 18  # BCM pin 18
+        print("Using BCM mode - Servo on BCM pin 18")  # Initialize servo with the correct pin for the detected mode
     servo_lock = ServoLock(
-        pin=18,  # GPIO pin for servo
+        pin=servo_pin,  # Use mode-appropriate pin number
         locked_angle=0,  # Angle for locked position
         unlocked_angle=90,  # Angle for unlocked position
     )
