@@ -1,9 +1,13 @@
 """RFID reader/writer module for MFRC522."""
 
+import logging
 import time
 
 from mfrc522 import SimpleMFRC522
 from RPi import GPIO
+
+logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%S]", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class RFIDReader:
@@ -19,11 +23,11 @@ class RFIDReader:
         :return: Tuple of (card_id, text) if card is detected, None otherwise.
         """
         try:
-            print("Reading... Please place the card...")
+            logger.info("Ready to read RFID card...")
             card_id, text = self.reader.read()
-            print(f"Card detected - ID: {card_id}")
-        except Exception as e:
-            print(f"Error reading card: {e}")
+            logger.info(str(f"Card detected - ID: {card_id}"))
+        except Exception:
+            logger.exception("Error reading card!")
             return None
         else:
             return (card_id, text)
@@ -35,50 +39,50 @@ class RFIDReader:
         :return: True if write successful, False otherwise.
         """
         try:
-            print("Please place the card to complete writing...")
+            logger.info("Place card on the reader...")
             self.reader.write(text)
-            print("Data writing is complete")
-        except Exception as e:
-            print(f"Error writing to card: {e}")
+            logger.info("Data writing is complete")
+        except Exception:
+            logger.exception("Error writing to card!")
             return False
         else:
             return True
 
-    def wait_for_card(self, timeout: int = 1) -> tuple[int, str] | None:
-        """Wait for a card to be detected with a timeout.
+    def wait_for_card(self) -> tuple[int, str] | None:
+        """Wait for a card to be detected (blocking).
 
-        :param int timeout: Maximum time to wait for card detection in seconds.
-        :return: Tuple of (card_id, text) if card is detected within timeout, None otherwise.
+        :return: Tuple of (card_id, text) if card is detected, None on error.
         """
-        try:
-            # Non-blocking read attempt
-            card_id, text = self.reader.read_no_block()
-            if card_id is not None:
-                print(f"Card detected - ID: {card_id}")
-                return (card_id, text)
-        except AttributeError:
-            # Fallback to blocking read with short timeout simulation
-            try:
-                card_id, text = self.reader.read()
-                print(f"Card detected - ID: {card_id}")
-            except Exception:
-                return None
-            else:
-                return (card_id, text)
-        except Exception as e:
-            print(f"Error detecting card: {e}")
-            return None
-        else:
-            return None
+        logger.info("Waiting for RFID card...")
+        return self.read_card()
+
+
+def read() -> None:
+    """Read data from RFID cards using the RFIDReader class."""
+    rfid = RFIDReader()
+
+    logger.info("RFID Reader - Press Ctrl+C to exit")
+    logger.info("-" * 30)
+
+    try:
+        while True:
+            card_data = rfid.read_card()
+            if card_data:
+                logger.info(str(f"Text: {card_data[1]}"))
+            time.sleep(3)
+    except KeyboardInterrupt:
+        logger.info("Exiting...")
+    finally:
+        GPIO.cleanup()
+        logger.info("Cleanup complete.")
 
 
 def write() -> None:
     """Write data to RFID cards using the RFIDReader class."""
     rfid_reader = RFIDReader()
 
-    print("RFID Card Writer")
-    print("Press Ctrl+C to exit")
-    print("-" * 30)
+    logger.info("RFID Card Writer - Press Ctrl+C to exit")
+    logger.info("-" * 30)
 
     try:
         while True:
@@ -88,38 +92,20 @@ def write() -> None:
                 break
 
             if text:
-                print("Please place the card on the reader...")
+                logger.info("Please place the card on the reader...")
                 success = rfid_reader.write_card(text)
 
                 if success:
-                    print(f"Successfully wrote: '{text}' to card")
+                    logger.info(str(f"Successfully wrote: '{text}' to card"))
                 else:
-                    print("Failed to write to card")
+                    logger.info("Failed to write to card")
             else:
-                print("Please enter some text to write")
+                logger.info("Please enter some text to write")
 
-            print("-" * 30)
+            logger.info("-" * 30)
 
     except KeyboardInterrupt:
-        print("\nExiting...")
+        logger.info("Exiting...")
     finally:
         GPIO.cleanup()
-        print("Cleanup complete.")
-
-
-def read() -> None:
-    """Read data from RFID cards using the RFIDReader class."""
-    rfid = RFIDReader()
-
-    try:
-        while True:
-            card_data = rfid.read_card()
-            if card_data:
-                card_id, text = card_data
-                print(f"ID: {card_id}\nText: {text}")
-            time.sleep(3)
-    except KeyboardInterrupt:
-        print("\nExiting...")
-    finally:
-        GPIO.cleanup()
-        print("Cleanup complete.")
+        logger.info("Cleanup complete.")
