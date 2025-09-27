@@ -109,7 +109,7 @@ def debug() -> None:
 
     try:
         while True:
-            command = input("Enter command (lock/unlock/toggle/sweep/quit): ").strip().lower()
+            command = input("Enter command (lock/unlock/toggle/quit): ").strip().lower()
 
             if command == "lock":
                 servo_lock.lock()
