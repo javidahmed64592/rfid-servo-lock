@@ -47,17 +47,7 @@ class ServoLock:
         current_mode = GPIO.getmode()
 
         if current_mode is None:
-            logger.info("No GPIO mode set, defaulting to BCM.")
             GPIO.setmode(GPIO.BCM)
-            mode_name = "BCM"
-        elif current_mode == GPIO.BCM:
-            mode_name = "BCM"
-        elif current_mode == GPIO.BOARD:
-            mode_name = "BOARD"
-        else:
-            mode_name = f"Unknown ({current_mode})"
-
-        logger.info(str(f"Servo using GPIO mode {mode_name} & Pin {self.pin}."))
 
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
@@ -66,9 +56,7 @@ class ServoLock:
 
     def _initialize_position(self) -> None:
         """Initialize servo to locked position on startup."""
-        logger.info("Initializing servo to locked position...")
         self.lock()
-        logger.info(str(f"Servo initialized and locked at {self.locked_angle}°"))
 
     @staticmethod
     def _map_value(
@@ -97,14 +85,12 @@ class ServoLock:
     def lock(self) -> None:
         """Lock the mechanism by moving to locked position."""
         if not self.is_locked:
-            logger.info("Locking...")
             self.set_angle(self.locked_angle)
             self.is_locked = True
 
     def unlock(self) -> None:
         """Unlock the mechanism by moving to unlocked position."""
         if self.is_locked:
-            logger.info("Unlocking...")
             self.set_angle(self.unlocked_angle)
             self.is_locked = False
 
