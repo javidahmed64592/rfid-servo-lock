@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 def run() -> None:
     """Run the RFID-controlled servo lock system."""
+    load_dotenv()
+
     logger.info("Initializing RFID Servo Lock System...")
     rfid_reader = RFIDReader()
 
