@@ -63,7 +63,7 @@ def load_card_hash(card_id: int) -> str | None:
         authorized_card_id = int(os.getenv("AUTHORIZED_CARD_ID", "-1"))
         authorized_card_hash = os.getenv("AUTHORIZED_CARD_HASH")
 
-        if not (authorized_card_id or authorized_card_hash) or (authorized_card_id != card_id):
+        if not authorized_card_id or not authorized_card_hash or (authorized_card_id != card_id):
             return None
     except Exception:
         return None
