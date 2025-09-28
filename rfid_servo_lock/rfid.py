@@ -26,7 +26,7 @@ class RFIDReader:
         """
         try:
             card_id, text = self.reader.read()
-            logger.info(str(f"Card detected - ID: {card_id}"))
+            logger.info("Card detected - ID: %s", card_id)
         except Exception:
             logger.exception("Error reading card!")
             return None
@@ -53,15 +53,12 @@ def read() -> None:
     """Read data from RFID cards using the RFIDReader class."""
     rfid = RFIDReader()
 
-    logger.info("RFID Reader - Press Ctrl+C to exit")
-    logger.info("-" * 30)
-
     try:
         while True:
             logger.info("Place the card on the reader...")
             card_data = rfid.read_card()
             if card_data:
-                logger.info(str(f"Text: {card_data[1]}"))
+                logger.info("Text: %s", card_data[1])
             time.sleep(3)
     except KeyboardInterrupt:
         logger.info("Exiting...")
@@ -74,10 +71,6 @@ def write() -> None:
     """Write data to RFID cards using the RFIDReader class."""
     rfid_reader = RFIDReader()
 
-    logger.info("RFID Card Writer - Press Ctrl+C to exit")
-    logger.info("This will write a password to the card and save the hash to .env")
-    logger.info("-" * 50)
-
     try:
         while True:
             password = input("Enter password for RFID card (or 'quit' to exit): ").strip()
@@ -86,7 +79,7 @@ def write() -> None:
                 break
 
             if password:
-                logger.info("Place the card on the reader to get its ID...")
+                logger.info("Place the card on the reader...")
                 card_data = rfid_reader.read_card()
 
                 if not card_data:
@@ -96,15 +89,12 @@ def write() -> None:
                 card_id, _ = card_data
 
                 try:
+                    success = rfid_reader.write_card(password)
                     save_authorized_card(card_id, password)
                     logger.info("Password hash saved for card %s", card_id)
                 except Exception:
                     logger.exception("Failed to save password hash")
                     continue
-
-                # Write the password to the RFID card
-                logger.info("Now place the card back on the reader to write the password...")
-                success = rfid_reader.write_card(password)
 
                 if success:
                     logger.info("Card %s is now authorized for the lock system.", card_id)
@@ -112,8 +102,6 @@ def write() -> None:
                     logger.error("Failed to write password to card!")
             else:
                 logger.error("Password cannot be empty!")
-
-            logger.info("-" * 50)
     except KeyboardInterrupt:
         logger.info("Exiting...")
     finally:
