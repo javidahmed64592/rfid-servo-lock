@@ -94,12 +94,12 @@ class TestServoLock:
     )
     def test_map_value(
         self,
-        value: float,
-        in_min: float,
-        in_max: float,
-        out_min: float,
-        out_max: float,
-        expected: float,
+        value: int,
+        in_min: int,
+        in_max: int,
+        out_min: int,
+        out_max: int,
+        expected: int,
     ) -> None:
         """Test the _map_value static method with various input combinations."""
         assert ServoLock._map_value(value, in_min, in_max, out_min, out_max) == expected
@@ -238,7 +238,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function with lock command."""
         mock_input.side_effect = ["lock", "quit"]
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         debug()
 
@@ -251,7 +251,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function with unlock command."""
         mock_input.side_effect = ["unlock", "quit"]
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         debug()
 
@@ -264,7 +264,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function with toggle command."""
         mock_input.side_effect = ["toggle", "quit"]
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         debug()
 
@@ -281,7 +281,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function with invalid command."""
         mock_input.side_effect = ["invalid", "quit"]
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         with caplog.at_level(logging.WARNING):
             debug()
@@ -296,7 +296,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function with different quit command variations."""
         mock_input.side_effect = [quit_cmd]
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         debug()
 
@@ -312,7 +312,7 @@ class TestDebugFunction:
     ) -> None:
         """Test debug function handles KeyboardInterrupt."""
         mock_input.side_effect = KeyboardInterrupt()
-        mock_servo_class_obj, mock_servo = mock_servo_class
+        _, mock_servo = mock_servo_class
 
         with caplog.at_level(logging.INFO):
             debug()
