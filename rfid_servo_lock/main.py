@@ -39,7 +39,7 @@ def run() -> None:
     )
 
     logger.info("System initialized successfully!")
-    logger.info("Waiting for RFID cards... (Press Ctrl+C to exit)")
+    logger.info("Waiting for RFID cards...")
 
     try:
         while True:
