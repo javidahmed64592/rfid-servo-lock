@@ -47,7 +47,6 @@ def save_authorized_card(card_id: int, password: str) -> None:
     # Write the single authorized card configuration to .env file
     with open(".env", "w") as f:
         f.write("# RFID Servo Lock Environment Configuration\n")
-        f.write("# Single authorized card (card ID used as salt)\n")
         f.write(f"AUTHORIZED_CARD_ID={card_id}\n")
         f.write(f"AUTHORIZED_CARD_HASH={hashed_password}\n")
 
@@ -61,15 +60,10 @@ def load_card_hash(card_id: int) -> str | None:
     :return: The stored hash if card is authorized, None otherwise.
     """
     try:
-        authorized_card_id_str = os.getenv("AUTHORIZED_CARD_ID")
+        authorized_card_id = int(os.getenv("AUTHORIZED_CARD_ID"))
         authorized_card_hash = os.getenv("AUTHORIZED_CARD_HASH")
 
-        if not authorized_card_id_str or not authorized_card_hash:
-            return None
-
-        authorized_card_id = int(authorized_card_id_str)
-
-        if authorized_card_id != card_id:
+        if not (authorized_card_id or authorized_card_hash) or (authorized_card_id != card_id):
             return None
     except Exception:
         return None
@@ -84,10 +78,7 @@ def verify_card_authorization(card_id: int, card_password: str) -> bool:
     :param str card_password: The password from the RFID card.
     :return: True if authorized, False otherwise.
     """
-    cleaned_password = card_password.strip()
-    stored_hash = load_card_hash(card_id)
-
-    if not stored_hash:
+    if not (stored_hash := load_card_hash(card_id)):
         return False
 
-    return verify_password_with_card_id(cleaned_password, card_id, stored_hash)
+    return verify_password_with_card_id(card_password.strip(), card_id, stored_hash)

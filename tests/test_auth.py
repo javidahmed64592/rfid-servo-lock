@@ -43,7 +43,6 @@ def test_save_authorized_card(mock_file: MagicMock) -> None:
     # Verify the correct content was written
     expected_calls = [
         call("# RFID Servo Lock Environment Configuration\n"),
-        call("# Single authorized card (card ID used as salt)\n"),
         call(f"AUTHORIZED_CARD_ID={card_id}\n"),
         call(f"AUTHORIZED_CARD_HASH={hash_password_with_card_id(password, card_id)}\n"),
     ]
