@@ -1,8 +1,11 @@
 """Authentication utilities for RFID password hashing and verification."""
 
 import hashlib
+import logging
 import os
 import secrets
+
+logger = logging.getLogger(__name__)
 
 
 def hash_password_with_card_id(password: str, card_id: int) -> str:
@@ -26,7 +29,11 @@ def verify_password_with_card_id(password: str, card_id: int, stored_hash: str) 
     :param str stored_hash: The stored password hash.
     :return: True if password matches, False otherwise.
     """
+    logger.info(f"Verifying password for card ID: {card_id}")
+    logger.info(f"Stored hash: {stored_hash}")
+    logger.info(f"Password to verify: '{repr(password)}'")
     test_hash = hash_password_with_card_id(password, card_id)
+    logger.info(f"Computed hash: {test_hash}")
     return secrets.compare_digest(test_hash, stored_hash)
 
 
@@ -60,6 +67,9 @@ def load_card_hash(card_id: int) -> str | None:
     try:
         authorized_card_id_str = os.getenv("AUTHORIZED_CARD_ID")
         authorized_card_hash = os.getenv("AUTHORIZED_CARD_HASH")
+
+        logger.info(f"Loaded AUTHORIZED_CARD_ID: {authorized_card_id_str}")
+        logger.info(f"Loaded AUTHORIZED_CARD_HASH: {authorized_card_hash}")
 
         if not authorized_card_id_str or not authorized_card_hash:
             return None
