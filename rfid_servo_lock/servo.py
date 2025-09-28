@@ -44,14 +44,14 @@ class ServoLock:
 
     @staticmethod
     def _map_value(
-        value: float,
-        in_min: float,
-        in_max: float,
-        out_min: float,
-        out_max: float,
-    ) -> float:
+        value: int,
+        in_min: int,
+        in_max: int,
+        out_min: int,
+        out_max: int,
+    ) -> int:
         """Map a value from one range to another."""
-        return (out_max - out_min) * (value - in_min) / (in_max - in_min) + out_min
+        return int((out_max - out_min) * (value - in_min) / (in_max - in_min) + out_min)
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
