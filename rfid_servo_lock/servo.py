@@ -40,22 +40,6 @@ class ServoLock:
         self.is_locked = True
 
         self._setup_gpio()
-        self._initialize_position()
-
-    def _setup_gpio(self) -> None:
-        """Set up GPIO configuration for servo control."""
-        current_mode = GPIO.getmode()
-
-        if current_mode is None:
-            GPIO.setmode(GPIO.BCM)
-
-        GPIO.setup(self.pin, GPIO.OUT)
-        GPIO.output(self.pin, GPIO.LOW)
-        self.pwm = GPIO.PWM(self.pin, self.frequency)
-        self.pwm.start(0)
-
-    def _initialize_position(self) -> None:
-        """Initialize servo to locked position on startup."""
         self.lock()
 
     @staticmethod
@@ -69,7 +53,19 @@ class ServoLock:
         """Map a value from one range to another."""
         return (out_max - out_min) * (value - in_min) / (in_max - in_min) + out_min
 
-    def set_angle(self, angle: int) -> None:
+    def _setup_gpio(self) -> None:
+        """Set up GPIO configuration for servo control."""
+        current_mode = GPIO.getmode()
+
+        if current_mode is None:
+            GPIO.setmode(GPIO.BCM)
+
+        GPIO.setup(self.pin, GPIO.OUT)
+        GPIO.output(self.pin, GPIO.LOW)
+        self.pwm = GPIO.PWM(self.pin, self.frequency)
+        self.pwm.start(0)
+
+    def _set_angle(self, angle: int) -> None:
         """Set the servo to a specific angle.
 
         :param int angle: Target angle (0-180 degrees).
@@ -82,24 +78,24 @@ class ServoLock:
             self.pwm.ChangeDutyCycle(duty_cycle)
             time.sleep(0.5)
 
-    def lock(self) -> None:
+    def _lock(self) -> None:
         """Lock the mechanism by moving to locked position."""
         if not self.is_locked:
-            self.set_angle(self.locked_angle)
+            self._set_angle(self.locked_angle)
             self.is_locked = True
 
-    def unlock(self) -> None:
+    def _unlock(self) -> None:
         """Unlock the mechanism by moving to unlocked position."""
         if self.is_locked:
-            self.set_angle(self.unlocked_angle)
+            self._set_angle(self.unlocked_angle)
             self.is_locked = False
 
     def toggle(self) -> None:
         """Toggle between locked and unlocked states."""
         if self.is_locked:
-            self.unlock()
+            self._unlock()
         else:
-            self.lock()
+            self._lock()
 
     def cleanup(self) -> None:
         """Clean up PWM resources (GPIO cleanup handled by main application)."""
@@ -120,9 +116,9 @@ def debug() -> None:
             command = input("Enter command (lock/unlock/toggle/quit): ").strip().lower()
 
             if command == "lock":
-                servo_lock.lock()
+                servo_lock._lock()
             elif command == "unlock":
-                servo_lock.unlock()
+                servo_lock._unlock()
             elif command == "toggle":
                 servo_lock.toggle()
             elif command in ["quit", "q", "exit"]:
