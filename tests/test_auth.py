@@ -56,19 +56,35 @@ def test_load_card_hash(mock_getenv: MagicMock) -> None:
     expected_hash = "test_hash_value"
 
     # Test successful load
-    mock_getenv.side_effect = lambda key: {
+    mock_getenv.side_effect = lambda key, default=None: {
         "AUTHORIZED_CARD_ID": str(card_id),
         "AUTHORIZED_CARD_HASH": expected_hash,
-    }.get(key)
+    }.get(key, default)
 
     result = load_card_hash(card_id)
     assert result == expected_hash
 
     # Test wrong card ID
-    mock_getenv.side_effect = lambda key: {
+    mock_getenv.side_effect = lambda key, default=None: {
         "AUTHORIZED_CARD_ID": "999999999",
         "AUTHORIZED_CARD_HASH": expected_hash,
-    }.get(key)
+    }.get(key, default)
+
+    result = load_card_hash(card_id)
+    assert result is None
+
+    # Test missing environment variables (card ID not set)
+    mock_getenv.side_effect = lambda key, default=None: {
+        "AUTHORIZED_CARD_HASH": expected_hash,
+    }.get(key, default)
+
+    result = load_card_hash(card_id)
+    assert result is None
+
+    # Test missing hash environment variable
+    mock_getenv.side_effect = lambda key, default=None: {
+        "AUTHORIZED_CARD_ID": str(card_id),
+    }.get(key, default)
 
     result = load_card_hash(card_id)
     assert result is None
