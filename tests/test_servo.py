@@ -34,10 +34,15 @@ def mock_input() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def mock_servo_class() -> Generator[MagicMock, None, None]:
+def mock_servo_class() -> Generator[tuple[MagicMock, MagicMock], None, None]:
     """Fixture to mock ServoLock class for debug function tests."""
     with patch("rfid_servo_lock.servo.ServoLock") as mock:
         mock_servo = MagicMock()
+        # Explicitly define the methods that the debug function will call
+        mock_servo._lock = MagicMock()
+        mock_servo._unlock = MagicMock()
+        mock_servo.toggle = MagicMock()
+        mock_servo.cleanup = MagicMock()
         mock.return_value = mock_servo
         yield mock, mock_servo
 
