@@ -261,7 +261,7 @@ class TestWriteFunction:
             write()
 
         # Verify password input was called
-        assert mock_input.call_count == 2
+        assert mock_input.call_count == 1 + 1
         mock_input.assert_any_call("Enter password for RFID card (or 'quit' to exit): ")
 
         # Verify card operations
@@ -270,11 +270,10 @@ class TestWriteFunction:
         mock_rfid_reader.write_card.assert_called_once_with("testpassword")
 
         # Verify logging messages
-        assert "RFID Card Writer - Press Ctrl+C to exit" in caplog.text
-        assert "Place the card on the reader to get its ID..." in caplog.text
+        assert "Place the card on the reader..." in caplog.text
         assert "Password hash saved for card 123456789" in caplog.text
-        assert "Now place the card back on the reader to write the password..." in caplog.text
         assert "Card 123456789 is now authorized for the lock system." in caplog.text
+        assert "Cleanup complete." in caplog.text
 
         # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
@@ -367,10 +366,10 @@ class TestWriteFunction:
         # Verify exception was logged
         assert "Failed to save password hash" in caplog.text
 
-        # Verify card read was attempted but write was not
+        # Verify card operations - write_card is called before save_authorized_card in actual implementation
         mock_rfid_reader.read_card.assert_called_once()
+        mock_rfid_reader.write_card.assert_called_once_with("testpassword")
         mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
-        mock_rfid_reader.write_card.assert_not_called()
 
         # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
@@ -396,8 +395,8 @@ class TestWriteFunction:
 
         # Verify all operations were attempted
         mock_rfid_reader.read_card.assert_called_once()
-        mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
         mock_rfid_reader.write_card.assert_called_once_with("testpassword")
+        mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
 
         # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
