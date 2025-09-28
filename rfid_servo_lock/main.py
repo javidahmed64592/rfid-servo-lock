@@ -3,6 +3,7 @@
 import logging
 import time
 
+from dotenv import load_dotenv
 from RPi import GPIO
 
 from rfid_servo_lock.auth import verify_card_authorization
@@ -18,14 +19,11 @@ def run() -> None:
     logger.info("Initializing RFID Servo Lock System...")
     rfid_reader = RFIDReader()
 
-    current_gpio_mode = GPIO.getmode()
-    logger.info("GPIO mode detected: %s", current_gpio_mode)
-
     # Convert pin number based on detected mode
     # Pin mapping reference:
     # - BCM Pin 18 = Physical Pin 12 = BOARD Pin 12
     # - This is GPIO18 on the Raspberry Pi
-    if current_gpio_mode == GPIO.BOARD:
+    if GPIO.getmode() == GPIO.BOARD:
         servo_pin = 12
         logger.info("Using BOARD mode - Servo on physical pin 12.")
     else:

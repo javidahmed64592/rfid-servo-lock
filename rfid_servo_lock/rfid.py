@@ -94,9 +94,7 @@ def write() -> None:
                     continue
 
                 card_id, _ = card_data
-                logger.info("Card ID detected: %s", card_id)
 
-                # Save the password hash with card ID as salt to .env file
                 try:
                     save_authorized_card(card_id, password)
                     logger.info("Password hash saved for card %s", card_id)

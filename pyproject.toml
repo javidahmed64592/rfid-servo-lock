@@ -17,8 +17,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "RPi.GPIO>=0.7.1",
     "mfrc522>=0.0.7",
+    "python-dotenv",
+    "RPi.GPIO>=0.7.1",
 ]
 
 [project.optional-dependencies]
