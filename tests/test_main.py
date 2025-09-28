@@ -98,8 +98,8 @@ class TestRun:
     ) -> None:
         """Test run function initialization in BOARD mode."""
         # Setup mocks
+        mock_gpio.BOARD = 10
         mock_gpio.getmode.return_value = mock_gpio.BOARD
-        mock_gpio.BOARD = 10  # Mock BOARD constant
         mock_rfid_reader.return_value.read_card.side_effect = KeyboardInterrupt()
 
         with caplog.at_level(logging.INFO):
@@ -260,7 +260,7 @@ class TestRun:
         # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = Exception("Unexpected error!")
 
-        with caplog.at_level(logging.ERROR):
+        with caplog.at_level(logging.INFO):
             run()
 
         # Verify exception was logged
