@@ -92,4 +92,4 @@ mock_modules = {
 
 # Add mocked modules to sys.modules before any imports
 for module_name, mock_module in mock_modules.items():
-    sys.modules[module_name] = mock_module
+    sys.modules[module_name] = mock_module  # type: ignore[assignment]

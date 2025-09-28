@@ -36,11 +36,11 @@ class ServoLock:
         self.frequency = frequency
         self.min_pulse = min_pulse
         self.max_pulse = max_pulse
-        self.pwm = None
+        self.pwm: GPIO.PWM | None = None
         self.is_locked = True
 
         self._setup_gpio()
-        self.lock()
+        self._lock()
 
     @staticmethod
     def _map_value(
@@ -55,15 +55,14 @@ class ServoLock:
 
     def _setup_gpio(self) -> None:
         """Set up GPIO configuration for servo control."""
-        current_mode = GPIO.getmode()
-
-        if current_mode is None:
+        if GPIO.getmode() is None:
             GPIO.setmode(GPIO.BCM)
 
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
-        self.pwm = GPIO.PWM(self.pin, self.frequency)
-        self.pwm.start(0)
+        if pwm := GPIO.PWM(self.pin, self.frequency):
+            self.pwm = pwm
+            self.pwm.start(0)
 
     def _set_angle(self, angle: int) -> None:
         """Set the servo to a specific angle.
