@@ -20,6 +20,7 @@ dependencies = [
     "mfrc522>=0.0.7",
     "python-dotenv",
     "RPi.GPIO>=0.7.1",
+    "smbus2",
 ]
 
 [project.optional-dependencies]
