@@ -1,307 +1,179 @@
-"""LCD1602 display control module for Raspberry Pi."""
+"""LCD1602 display control module for I2C interface."""
 
 import logging
 import time
 
-from RPi import GPIO
+import smbus2 as smbus
 
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%S]", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class LCD1602:
-    """Class for controlling a 16x2 character LCD display."""
+    """Class for controlling an LCD1602 display via I2C interface."""
 
-    # LCD Commands
-    LCD_CLEARDISPLAY = 0x01
-    LCD_RETURNHOME = 0x02
-    LCD_ENTRYMODESET = 0x04
-    LCD_DISPLAYCONTROL = 0x08
-    LCD_CURSORSHIFT = 0x10
-    LCD_FUNCTIONSET = 0x20
-    LCD_SETCGRAMADDR = 0x40
-    LCD_SETDDRAMADDR = 0x80
+    def __init__(self, address: int = 0x27, backlight: bool = True, bus_number: int = 1) -> None:
+        """Initialize the LCD1602 display.
 
-    # Entry mode flags
-    LCD_ENTRYRIGHT = 0x00
-    LCD_ENTRYLEFT = 0x02
-    LCD_ENTRYSHIFTINCREMENT = 0x01
-    LCD_ENTRYSHIFTDECREMENT = 0x00
-
-    # Display control flags
-    LCD_DISPLAYON = 0x04
-    LCD_DISPLAYOFF = 0x00
-    LCD_CURSORON = 0x02
-    LCD_CURSOROFF = 0x00
-    LCD_BLINKON = 0x01
-    LCD_BLINKOFF = 0x00
-
-    # Display/cursor shift flags
-    LCD_DISPLAYMOVE = 0x08
-    LCD_CURSORMOVE = 0x00
-    LCD_MOVERIGHT = 0x04
-    LCD_MOVELEFT = 0x00
-
-    # Function set flags
-    LCD_8BITMODE = 0x10
-    LCD_4BITMODE = 0x00
-    LCD_2LINE = 0x08
-    LCD_1LINE = 0x00
-    LCD_5x10DOTS = 0x04
-    LCD_5x8DOTS = 0x00
-
-    def __init__(
-        self,
-        pin_rs: int = 27,
-        pin_e: int = 22,
-        pins_db: list[int] | None = None,
-    ) -> None:
-        """Initialize the LCD display.
-
-        :param int pin_rs: GPIO pin for Register Select (RS).
-        :param int pin_e: GPIO pin for Enable (E).
-        :param list[int] | None pins_db: List of GPIO pins for data bus (D4-D7).
+        :param int address: I2C address of the LCD display.
+        :param bool backlight: Whether to enable the backlight.
+        :param int bus_number: I2C bus number.
         """
-        if pins_db is None:
-            pins_db = [25, 24, 23, 18]
+        self.address = address
+        self.backlight_enabled = backlight
+        self.bus = smbus.SMBus(bus_number)
 
-        self.pin_rs = pin_rs
-        self.pin_e = pin_e
-        self.pins_db = pins_db
-        self.numlines = 2
-        self.currline = 0
-        self.row_offsets = [0x00, 0x40, 0x14, 0x54]
-
-        self._setup_gpio()
         self._initialize_display()
 
-    def _setup_gpio(self) -> None:
-        """Set up GPIO pins for LCD control."""
-        if GPIO.getmode() is None:
-            GPIO.setmode(GPIO.BCM)
+    def _write_word(self, data: int) -> None:
+        """Write a byte to the LCD display.
 
-        GPIO.setup(self.pin_e, GPIO.OUT)
-        GPIO.setup(self.pin_rs, GPIO.OUT)
+        :param int data: The byte to write.
+        """
+        temp = data
+        if self.backlight_enabled:
+            temp |= 0x08
+        else:
+            temp &= 0xF7
+        self.bus.write_byte(self.address, temp)
 
-        for pin in self.pins_db:
-            GPIO.setup(pin, GPIO.OUT)
+    def _send_command(self, command: int) -> None:
+        """Send a command to the LCD display.
+
+        :param int command: The command byte to send.
+        """
+        # Send bit7-4 firstly
+        buf = command & 0xF0
+        buf |= 0x04  # RS = 0, RW = 0, EN = 1
+        self._write_word(buf)
+        time.sleep(0.002)
+        buf &= 0xFB  # Make EN = 0
+        self._write_word(buf)
+
+        # Send bit3-0 secondly
+        buf = (command & 0x0F) << 4
+        buf |= 0x04  # RS = 0, RW = 0, EN = 1
+        self._write_word(buf)
+        time.sleep(0.002)
+        buf &= 0xFB  # Make EN = 0
+        self._write_word(buf)
+
+    def _send_data(self, data: int) -> None:
+        """Send data to the LCD display.
+
+        :param int data: The data byte to send.
+        """
+        # Send bit7-4 firstly
+        buf = data & 0xF0
+        buf |= 0x05  # RS = 1, RW = 0, EN = 1
+        self._write_word(buf)
+        time.sleep(0.002)
+        buf &= 0xFB  # Make EN = 0
+        self._write_word(buf)
+
+        # Send bit3-0 secondly
+        buf = (data & 0x0F) << 4
+        buf |= 0x05  # RS = 1, RW = 0, EN = 1
+        self._write_word(buf)
+        time.sleep(0.002)
+        buf &= 0xFB  # Make EN = 0
+        self._write_word(buf)
 
     def _initialize_display(self) -> None:
-        """Initialize the LCD display with required command sequence."""
-        self._write4bits(0x33)  # Initialization
-        self._write4bits(0x32)  # Initialization
-        self._write4bits(0x28)  # 2 line 5x7 matrix
-        self._write4bits(0x0C)  # Turn cursor off (0x0E to enable cursor)
-        self._write4bits(0x06)  # Shift cursor right
-
-        self.displaycontrol = self.LCD_DISPLAYON | self.LCD_CURSOROFF | self.LCD_BLINKOFF
-        self.displayfunction = self.LCD_4BITMODE | self.LCD_2LINE | self.LCD_5x8DOTS
-        self.displaymode = self.LCD_ENTRYLEFT | self.LCD_ENTRYSHIFTDECREMENT
-
-        self._write4bits(self.LCD_ENTRYMODESET | self.displaymode)
-        self.clear()
-
-    def _delay_microseconds(self, microseconds: int) -> None:
-        """Delay for a specified number of microseconds.
-
-        :param int microseconds: Number of microseconds to delay.
-        """
-        seconds = microseconds / 1_000_000
-        time.sleep(seconds)
-
-    def _pulse_enable(self) -> None:
-        """Pulse the enable pin to latch data."""
-        GPIO.output(self.pin_e, GPIO.LOW)
-        self._delay_microseconds(1)
-        GPIO.output(self.pin_e, GPIO.HIGH)
-        self._delay_microseconds(1)
-        GPIO.output(self.pin_e, GPIO.LOW)
-        self._delay_microseconds(1)
-
-    def _write4bits(self, bits: int, *, char_mode: bool = False) -> None:
-        """Write data to LCD in 4-bit mode.
-
-        :param int bits: 8-bit data to write (sent as two 4-bit operations).
-        :param bool char_mode: True for character data, False for commands.
-        """
-        self._delay_microseconds(1000)
-        bits_str = bin(bits)[2:].zfill(8)
-
-        GPIO.output(self.pin_rs, char_mode)
-
-        # Write high nibble
-        for pin in self.pins_db:
-            GPIO.output(pin, GPIO.LOW)
-
-        for i in range(4):
-            if bits_str[i] == "1":
-                GPIO.output(self.pins_db[::-1][i], GPIO.HIGH)
-
-        self._pulse_enable()
-
-        # Write low nibble
-        for pin in self.pins_db:
-            GPIO.output(pin, GPIO.LOW)
-
-        for i in range(4, 8):
-            if bits_str[i] == "1":
-                GPIO.output(self.pins_db[::-1][i - 4], GPIO.HIGH)
-
-        self._pulse_enable()
+        """Initialize the LCD display with proper settings."""
+        try:
+            self._send_command(0x33)  # Must initialize to 8-line mode at first
+            time.sleep(0.005)
+            self._send_command(0x32)  # Then initialize to 4-line mode
+            time.sleep(0.005)
+            self._send_command(0x28)  # 2 Lines & 5*7 dots
+            time.sleep(0.005)
+            self._send_command(0x0C)  # Enable display without cursor
+            time.sleep(0.005)
+            self._send_command(0x01)  # Clear Screen
+            self.bus.write_byte(self.address, 0x08)
+            logger.info("LCD1602 display initialized successfully at address 0x%02X", self.address)
+        except Exception:
+            logger.exception("Failed to initialize LCD1602 display!")
+            raise
 
     def clear(self) -> None:
-        """Clear the display."""
-        self._write4bits(self.LCD_CLEARDISPLAY)
-        self._delay_microseconds(3000)
+        """Clear the LCD display."""
+        try:
+            self._send_command(0x01)
+        except Exception:
+            logger.exception("Error clearing LCD display!")
 
-    def home(self) -> None:
-        """Return cursor to home position (0, 0)."""
-        self._write4bits(self.LCD_RETURNHOME)
-        self._delay_microseconds(3000)
+    def write(self, x: int, y: int, text: str) -> None:
+        """Write text to the LCD display at the specified position.
 
-    def set_cursor(self, col: int, row: int) -> None:
-        """Set cursor position on the display.
-
-        :param int col: Column position (0-15 for 16x2 display).
-        :param int row: Row position (0-1 for 16x2 display).
+        :param int x: Column position (0-15).
+        :param int y: Row position (0-1).
+        :param str text: Text to display.
         """
-        if row >= self.numlines:
-            row = self.numlines - 1
+        # Constrain coordinates to valid ranges
+        x = max(0, min(15, x))
+        y = max(0, min(1, y))
 
-        self._write4bits(self.LCD_SETDDRAMADDR | (col + self.row_offsets[row]))
+        # Move cursor to position
+        address = 0x80 + 0x40 * y + x
+        self._send_command(address)
 
-    def display_on(self) -> None:
-        """Turn the display on."""
-        self.displaycontrol |= self.LCD_DISPLAYON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
+        # Write each character
+        try:
+            for char in text:
+                self._send_data(ord(char))
+        except Exception:
+            logger.exception("Error writing text to LCD display!")
 
-    def display_off(self) -> None:
-        """Turn the display off."""
-        self.displaycontrol &= ~self.LCD_DISPLAYON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
+    def set_backlight(self, enabled: bool) -> None:
+        """Enable or disable the LCD backlight.
 
-    def cursor_on(self) -> None:
-        """Turn the underline cursor on."""
-        self.displaycontrol |= self.LCD_CURSORON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-
-    def cursor_off(self) -> None:
-        """Turn the underline cursor off."""
-        self.displaycontrol &= ~self.LCD_CURSORON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-
-    def blink_on(self) -> None:
-        """Turn on the blinking cursor."""
-        self.displaycontrol |= self.LCD_BLINKON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-
-    def blink_off(self) -> None:
-        """Turn off the blinking cursor."""
-        self.displaycontrol &= ~self.LCD_BLINKON
-        self._write4bits(self.LCD_DISPLAYCONTROL | self.displaycontrol)
-
-    def scroll_display_left(self) -> None:
-        """Scroll the display to the left."""
-        self._write4bits(self.LCD_CURSORSHIFT | self.LCD_DISPLAYMOVE | self.LCD_MOVELEFT)
-
-    def scroll_display_right(self) -> None:
-        """Scroll the display to the right."""
-        self._write4bits(self.LCD_CURSORSHIFT | self.LCD_DISPLAYMOVE | self.LCD_MOVERIGHT)
-
-    def left_to_right(self) -> None:
-        """Set text direction to left-to-right."""
-        self.displaymode |= self.LCD_ENTRYLEFT
-        self._write4bits(self.LCD_ENTRYMODESET | self.displaymode)
-
-    def right_to_left(self) -> None:
-        """Set text direction to right-to-left."""
-        self.displaymode &= ~self.LCD_ENTRYLEFT
-        self._write4bits(self.LCD_ENTRYMODESET | self.displaymode)
-
-    def autoscroll_on(self) -> None:
-        """Enable autoscrolling (right justify text from cursor)."""
-        self.displaymode |= self.LCD_ENTRYSHIFTINCREMENT
-        self._write4bits(self.LCD_ENTRYMODESET | self.displaymode)
-
-    def autoscroll_off(self) -> None:
-        """Disable autoscrolling (left justify text from cursor)."""
-        self.displaymode &= ~self.LCD_ENTRYSHIFTINCREMENT
-        self._write4bits(self.LCD_ENTRYMODESET | self.displaymode)
-
-    def message(self, text: str) -> None:
-        r"""Display a message on the LCD.
-
-        Newline characters (\n) will move to the next line.
-
-        :param str text: Text to display on the LCD.
+        :param bool enabled: True to enable backlight, False to disable.
         """
-        logger.debug("Displaying message: %s", text)
-
-        for char in text:
-            if char == "\n":
-                self._write4bits(0xC0)  # Move to next line
-            else:
-                self._write4bits(ord(char), char_mode=True)
+        self.backlight_enabled = enabled
+        if enabled:
+            self.bus.write_byte(self.address, 0x08)
+        else:
+            self.bus.write_byte(self.address, 0x00)
 
     def cleanup(self) -> None:
-        """Clean up GPIO resources."""
-        used_pins = [self.pin_rs, self.pin_e, *self.pins_db]
-        GPIO.cleanup(used_pins)
+        """Clean up I2C bus resources."""
+        try:
+            self.bus.close()
+            logger.info("LCD1602 cleanup complete.")
+        except Exception:
+            logger.exception("Error during LCD cleanup!")
 
 
 def debug() -> None:
-    """Demonstrate LCD functionality."""
-    GPIO.setmode(GPIO.BCM)
-    logger.info("LCD1602 Display Test")
-    logger.info("Pin Configuration:")
-    logger.info("  RS: BCM 27")
-    logger.info("  E:  BCM 22")
-    logger.info("  D4: BCM 25")
-    logger.info("  D5: BCM 24")
-    logger.info("  D6: BCM 23")
-    logger.info("  D7: BCM 18")
-
-    lcd = LCD1602()
+    """Demonstrate LCD1602 functionality."""
+    lcd = LCD1602(address=0x27, backlight=True)
 
     try:
-        # Welcome message
+        logger.info("Writing text to LCD...")
         lcd.clear()
-        lcd.message("Welcome to --->\nRFID Servo Lock")
+        lcd.write(4, 0, "Hello")
+        lcd.write(7, 1, "world!")
+
         time.sleep(3)
 
-        # Animated text demo
-        line0 = " Hello, World!"
-        line1 = "LCD1602 Test"
-
-        lcd.clear()
-        for i, char in enumerate(line0):
-            lcd.set_cursor(i, 0)
-            lcd.message(char)
-            time.sleep(0.1)
-
-        for i, char in enumerate(line1):
-            lcd.set_cursor(i, 1)
-            lcd.message(char)
-            time.sleep(0.1)
-
-        time.sleep(2)
-
-        # Scrolling demo
-        logger.info("Scrolling demo...")
-        for _ in range(3):
-            lcd.scroll_display_left()
-            time.sleep(0.5)
-
-        for _ in range(3):
-            lcd.scroll_display_right()
-            time.sleep(0.5)
-
+        logger.info("Testing backlight toggle...")
+        lcd.set_backlight(False)
         time.sleep(1)
+        lcd.set_backlight(True)
+
+        logger.info("Clearing display...")
+        time.sleep(2)
+        lcd.clear()
+
+        logger.info("Demo complete!")
 
     except KeyboardInterrupt:
         logger.info("Exiting...")
     finally:
-        lcd.clear()
         lcd.cleanup()
-        GPIO.cleanup()
-        logger.info("Cleanup complete.")
+
+
+if __name__ == "__main__":
+    debug()
