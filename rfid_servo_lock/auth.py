@@ -1,11 +1,8 @@
 """Authentication utilities for RFID password hashing and verification."""
 
 import hashlib
-import logging
 import os
 import secrets
-
-logger = logging.getLogger(__name__)
 
 
 def hash_password_with_card_id(password: str, card_id: int) -> str:
