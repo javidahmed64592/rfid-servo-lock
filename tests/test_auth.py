@@ -37,10 +37,8 @@ def test_save_authorized_card(mock_file: MagicMock) -> None:
 
     save_authorized_card(card_id, password)
 
-    # Verify file was opened for writing
     mock_file.assert_called_once_with(".env", "w")
 
-    # Verify the correct content was written
     expected_calls = [
         call("# RFID Servo Lock Environment Configuration\n"),
         call(f"AUTHORIZED_CARD_ID={card_id}\n"),

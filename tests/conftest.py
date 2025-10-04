@@ -83,13 +83,11 @@ class MockSimpleMFRC522:
         pass
 
 
-# Create mock modules with only what's actually needed
 mock_modules = {
     "RPi": MagicMock(),
     "RPi.GPIO": MockGPIO(),
     "mfrc522": MagicMock(SimpleMFRC522=MockSimpleMFRC522),
 }
 
-# Add mocked modules to sys.modules before any imports
 for module_name, mock_module in mock_modules.items():
     sys.modules[module_name] = mock_module  # type: ignore[assignment]

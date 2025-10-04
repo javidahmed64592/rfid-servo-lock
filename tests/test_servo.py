@@ -38,7 +38,6 @@ def mock_servo_class() -> Generator[tuple[MagicMock, MagicMock], None, None]:
     """Fixture to mock ServoLock class for debug function tests."""
     with patch("rfid_servo_lock.servo.ServoLock") as mock:
         mock_servo = MagicMock()
-        # Explicitly define the methods that the debug function will call
         mock_servo._lock = MagicMock()
         mock_servo._unlock = MagicMock()
         mock_servo.toggle = MagicMock()
@@ -113,7 +112,6 @@ class TestServoLock:
         servo = ServoLock()
         servo._set_angle(90)
 
-        # Verify PWM duty cycle was changed and sleep was called
         mock_pwm.ChangeDutyCycle.assert_called()
         mock_sleep.assert_called_with(0.5)
 
@@ -147,10 +145,8 @@ class TestServoLock:
 
         assert servo.is_locked == expected_locked_state
         if should_call_pwm:
-            # Should call PWM when state changes
             assert mock_pwm.ChangeDutyCycle.call_count > initial_call_count
         else:
-            # Should not call PWM when already in desired state
             assert mock_pwm.ChangeDutyCycle.call_count == initial_call_count
 
     @pytest.mark.parametrize(
@@ -183,10 +179,8 @@ class TestServoLock:
 
         assert servo.is_locked == expected_locked_state
         if should_call_pwm:
-            # Should call PWM when state changes
             assert mock_pwm.ChangeDutyCycle.call_count > initial_call_count
         else:
-            # Should not call PWM when already in desired state
             assert mock_pwm.ChangeDutyCycle.call_count == initial_call_count
 
     @pytest.mark.parametrize(

@@ -49,12 +49,10 @@ class TestRFIDReader:
         rfid_reader = RFIDReader()
 
         assert rfid_reader.reader is not None
-        # Verify SimpleMFRC522 was instantiated
         assert mock_simple_mfrc522 is not None
 
     def test_read_card_success(self, mock_simple_mfrc522: MagicMock) -> None:
         """Test successful card reading."""
-        # Setup mock return values
         expected_card_id = 123456789
         expected_text = "test_password"
         mock_simple_mfrc522.read.return_value = (expected_card_id, expected_text)
@@ -62,13 +60,11 @@ class TestRFIDReader:
         rfid_reader = RFIDReader()
         result = rfid_reader.read_card()
 
-        # Verify the method was called and returned expected values
         mock_simple_mfrc522.read.assert_called_once()
         assert result == (expected_card_id, expected_text)
 
     def test_read_card_exception(self, mock_simple_mfrc522: MagicMock, caplog: pytest.LogCaptureFixture) -> None:
         """Test card reading when an exception occurs."""
-        # Setup mock to raise exception
         mock_simple_mfrc522.read.side_effect = Exception("RFID read error")
 
         rfid_reader = RFIDReader()
@@ -76,7 +72,6 @@ class TestRFIDReader:
         with caplog.at_level(logging.ERROR):
             result = rfid_reader.read_card()
 
-        # Verify exception was logged and None was returned
         assert result is None
         assert "Error reading card!" in caplog.text
         mock_simple_mfrc522.read.assert_called_once()
@@ -90,7 +85,6 @@ class TestRFIDReader:
         with caplog.at_level(logging.INFO):
             result = rfid_reader.write_card(test_text)
 
-        # Verify the method was called with correct text and returned True
         mock_simple_mfrc522.write.assert_called_once_with(test_text)
         assert result is True
         assert "Data writing is complete" in caplog.text
@@ -98,7 +92,6 @@ class TestRFIDReader:
     def test_write_card_exception(self, mock_simple_mfrc522: MagicMock, caplog: pytest.LogCaptureFixture) -> None:
         """Test card writing when an exception occurs."""
         test_text = "test_password"
-        # Setup mock to raise exception
         mock_simple_mfrc522.write.side_effect = Exception("RFID write error")
 
         rfid_reader = RFIDReader()
@@ -106,7 +99,6 @@ class TestRFIDReader:
         with caplog.at_level(logging.ERROR):
             result = rfid_reader.write_card(test_text)
 
-        # Verify exception was logged and False was returned
         assert result is False
         assert "Error writing to card!" in caplog.text
         mock_simple_mfrc522.write.assert_called_once_with(test_text)
@@ -116,7 +108,7 @@ class TestRFIDReader:
         [
             (987654321, "password123"),
             (555555555, "secret_key"),
-            (111111111, ""),  # Empty text
+            (111111111, ""),
             (999999999, "very_long_password_text_that_might_be_stored_on_card"),
         ],
     )
@@ -135,9 +127,9 @@ class TestRFIDReader:
         [
             "simple_password",
             "password_with_123_numbers",
-            "",  # Empty string
+            "",
             "special_chars_!@#$%^&*()",
-            "a" * 100,  # Long string
+            "a" * 100,
         ],
     )
     def test_write_card_various_text(self, mock_simple_mfrc522: MagicMock, test_text: str) -> None:
@@ -156,75 +148,51 @@ class TestReadFunction:
         self, mock_rfid_reader: MagicMock, mock_sleep: MagicMock, mock_gpio: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test read function with successful card detection."""
-        # Setup mock to return card data once, then raise KeyboardInterrupt
         mock_rfid_reader.read_card.side_effect = [(123456789, "test_password"), KeyboardInterrupt()]
 
         with caplog.at_level(logging.INFO):
             read()
 
-        # Verify RFIDReader was instantiated
         assert mock_rfid_reader.read_card.call_count == 1 + 1
-
-        # Verify logging messages
         assert "Place the card on the reader..." in caplog.text
         assert "Text: test_password" in caplog.text
         assert "Exiting..." in caplog.text
         assert "Cleanup complete." in caplog.text
-
-        # Verify sleep was called
         mock_sleep.assert_called_with(3)
-
-        # Verify GPIO cleanup was called
         mock_gpio.cleanup.assert_called_once()
 
     def test_read_failed_card_detection(
         self, mock_rfid_reader: MagicMock, mock_sleep: MagicMock, mock_gpio: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test read function when card detection fails."""
-        # Setup mock to return None (failed read), then raise KeyboardInterrupt
         mock_rfid_reader.read_card.side_effect = [None, KeyboardInterrupt()]
 
         with caplog.at_level(logging.INFO):
             read()
 
-        # Verify read_card was called twice
         assert mock_rfid_reader.read_card.call_count == 1 + 1
-
-        # Verify logging messages (should not contain "Text:" since read failed)
         assert "Place the card on the reader..." in caplog.text
         assert "Text:" not in caplog.text
         assert "Exiting..." in caplog.text
         assert "Cleanup complete." in caplog.text
-
-        # Verify sleep was called
         mock_sleep.assert_called_with(3)
-
-        # Verify GPIO cleanup was called
         mock_gpio.cleanup.assert_called_once()
 
     def test_read_immediate_keyboard_interrupt(
         self, mock_rfid_reader: MagicMock, mock_sleep: MagicMock, mock_gpio: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test read function with immediate KeyboardInterrupt."""
-        # Setup mock to raise KeyboardInterrupt immediately
         mock_rfid_reader.read_card.side_effect = KeyboardInterrupt()
 
         with caplog.at_level(logging.INFO):
             read()
 
-        # Verify read_card was called once
         assert mock_rfid_reader.read_card.call_count == 1
-
-        # Verify initialization messages but no card text
         assert "Place the card on the reader..." in caplog.text
         assert "Text:" not in caplog.text
         assert "Exiting..." in caplog.text
         assert "Cleanup complete." in caplog.text
-
-        # Verify sleep was not called
         mock_sleep.assert_not_called()
-
-        # Verify GPIO cleanup was called
         mock_gpio.cleanup.assert_called_once()
 
 
@@ -252,7 +220,6 @@ class TestWriteFunction:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test write function with successful single card operation."""
-        # Setup mocks
         mock_input.side_effect = ["testpassword", "quit"]
         mock_rfid_reader.read_card.return_value = (123456789, "")
         mock_rfid_reader.write_card.return_value = True
@@ -260,22 +227,15 @@ class TestWriteFunction:
         with caplog.at_level(logging.INFO):
             write()
 
-        # Verify password input was called
         assert mock_input.call_count == 1 + 1
         mock_input.assert_any_call("Enter password for RFID card (or 'quit' to exit): ")
-
-        # Verify card operations
         mock_rfid_reader.read_card.assert_called_once()
         mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
         mock_rfid_reader.write_card.assert_called_once_with("testpassword")
-
-        # Verify logging messages
         assert "Place the card on the reader..." in caplog.text
         assert "Password hash saved for card 123456789" in caplog.text
         assert "Card 123456789 is now authorized for the lock system." in caplog.text
         assert "Cleanup complete." in caplog.text
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     @pytest.mark.parametrize("quit_cmd", ["quit", "q", "exit"])
@@ -293,11 +253,8 @@ class TestWriteFunction:
         with caplog.at_level(logging.INFO):
             write()
 
-        # Verify no card operations were performed
         mock_rfid_reader.read_card.assert_not_called()
         mock_rfid_reader.write_card.assert_not_called()
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     def test_write_empty_password(
@@ -313,14 +270,9 @@ class TestWriteFunction:
         with caplog.at_level(logging.ERROR):
             write()
 
-        # Verify error message was logged
         assert "Password cannot be empty!" in caplog.text
-
-        # Verify no card operations were performed
         mock_rfid_reader.read_card.assert_not_called()
         mock_rfid_reader.write_card.assert_not_called()
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     def test_write_card_read_failure(
@@ -337,14 +289,9 @@ class TestWriteFunction:
         with caplog.at_level(logging.ERROR):
             write()
 
-        # Verify error was logged
         assert "Failed to read card ID!" in caplog.text
-
-        # Verify card read was attempted but write was not
         mock_rfid_reader.read_card.assert_called_once()
         mock_rfid_reader.write_card.assert_not_called()
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     def test_write_save_authorized_card_failure(
@@ -363,15 +310,10 @@ class TestWriteFunction:
         with caplog.at_level(logging.ERROR):
             write()
 
-        # Verify exception was logged
         assert "Failed to save password hash" in caplog.text
-
-        # Verify card operations - write_card is called before save_authorized_card in actual implementation
         mock_rfid_reader.read_card.assert_called_once()
         mock_rfid_reader.write_card.assert_called_once_with("testpassword")
         mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     def test_write_card_write_failure(
@@ -390,15 +332,10 @@ class TestWriteFunction:
         with caplog.at_level(logging.ERROR):
             write()
 
-        # Verify error was logged
         assert "Failed to write password to card!" in caplog.text
-
-        # Verify all operations were attempted
         mock_rfid_reader.read_card.assert_called_once()
         mock_rfid_reader.write_card.assert_called_once_with("testpassword")
         mock_save_authorized_card.assert_called_once_with(123456789, "testpassword")
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()
 
     def test_write_keyboard_interrupt(
@@ -414,13 +351,8 @@ class TestWriteFunction:
         with caplog.at_level(logging.INFO):
             write()
 
-        # Verify KeyboardInterrupt messages
         assert "Exiting..." in caplog.text
         assert "Cleanup complete." in caplog.text
-
-        # Verify no card operations were performed
         mock_rfid_reader.read_card.assert_not_called()
         mock_rfid_reader.write_card.assert_not_called()
-
-        # Verify GPIO cleanup
         mock_gpio.cleanup.assert_called_once()

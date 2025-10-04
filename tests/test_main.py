@@ -20,7 +20,7 @@ def mock_load_dotenv() -> Generator[MagicMock, None, None]:
 def mock_gpio() -> Generator[MagicMock, None, None]:
     """Fixture to mock GPIO module."""
     with patch("rfid_servo_lock.main.GPIO") as mock:
-        mock.getmode.return_value = None  # Default to BCM mode
+        mock.getmode.return_value = None
         yield mock
 
 
@@ -64,28 +64,22 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function initialization in BCM mode."""
-        # Setup mocks
-        mock_gpio.getmode.return_value = None  # BCM mode
+        mock_gpio.getmode.return_value = None
         mock_rfid_reader.return_value.read_card.side_effect = KeyboardInterrupt()
 
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify initialization
         mock_load_dotenv.assert_called_once()
         mock_servo_lock.assert_called_once_with(
             pin=18,
             locked_angle=0,
             unlocked_angle=90,
         )
-
-        # Verify logging messages
         assert "Initializing RFID Servo Lock System..." in caplog.text
         assert "Using BCM mode - Servo on BCM pin 18." in caplog.text
         assert "System initialized successfully!" in caplog.text
         assert "Waiting for RFID cards..." in caplog.text
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -97,7 +91,6 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function initialization in BOARD mode."""
-        # Setup mocks
         mock_gpio.BOARD = 10
         mock_gpio.getmode.return_value = mock_gpio.BOARD
         mock_rfid_reader.return_value.read_card.side_effect = KeyboardInterrupt()
@@ -105,17 +98,12 @@ class TestRun:
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify servo was initialized with BOARD pin
         mock_servo_lock.assert_called_once_with(
             pin=12,
             locked_angle=0,
             unlocked_angle=90,
         )
-
-        # Verify logging messages
         assert "Using BOARD mode - Servo on physical pin 12." in caplog.text
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -129,7 +117,6 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function with successful card authorization."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = [
             (123456789, "test_password"),
             KeyboardInterrupt(),
@@ -139,20 +126,11 @@ class TestRun:
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify card verification was called
         mock_verify_card_authorization.assert_called_once_with(123456789, "test_password")
-
-        # Verify servo was toggled
         mock_servo_lock.return_value.toggle.assert_called_once()
-
-        # Verify logging messages
         assert "Ready to detect RFID card..." in caplog.text
         assert "Card authorized! Access granted." in caplog.text
-
-        # Verify sleep was called after authorization
         mock_sleep.assert_called_with(1)
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -166,7 +144,6 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function with failed card authorization."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = [
             (987654321, "wrong_password"),
             KeyboardInterrupt(),
@@ -176,19 +153,10 @@ class TestRun:
         with caplog.at_level(logging.WARNING):
             run()
 
-        # Verify card verification was called
         mock_verify_card_authorization.assert_called_once_with(987654321, "wrong_password")
-
-        # Verify servo was NOT toggled
         mock_servo_lock.return_value.toggle.assert_not_called()
-
-        # Verify logging messages
         assert "Card unauthorized! Access denied." in caplog.text
-
-        # Verify sleep was called after authorization attempt
         mock_sleep.assert_called_with(1)
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -202,25 +170,15 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function when no card is detected."""
-        # Setup mocks - return None (no card) then interrupt
         mock_rfid_reader.return_value.read_card.side_effect = [None, KeyboardInterrupt()]
 
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify card verification was NOT called
         mock_verify_card_authorization.assert_not_called()
-
-        # Verify servo was NOT toggled
         mock_servo_lock.return_value.toggle.assert_not_called()
-
-        # Verify sleep was NOT called (only called after card data is present)
         mock_sleep.assert_not_called()
-
-        # Verify logging messages
         assert "Ready to detect RFID card..." in caplog.text
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -232,19 +190,15 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function with immediate KeyboardInterrupt."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = KeyboardInterrupt()
 
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify initialization messages
         assert "Initializing RFID Servo Lock System..." in caplog.text
         assert "System initialized successfully!" in caplog.text
         assert "Shutting down RFID Servo Lock System..." in caplog.text
         assert "System shutdown complete!" in caplog.text
-
-        # Verify cleanup
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -257,16 +211,12 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function handling unexpected exceptions."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = Exception("Unexpected error!")
 
         with caplog.at_level(logging.INFO):
             run()
 
-        # Verify exception was logged
         assert "Unexpected error occurred!" in caplog.text
-
-        # Verify cleanup still occurred
         assert "Cleaning up resources..." in caplog.text
         assert "System shutdown complete!" in caplog.text
         mock_servo_lock.return_value.cleanup.assert_called_once()
@@ -281,20 +231,14 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function when card verification raises an exception."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = [(123456789, "test_password"), KeyboardInterrupt()]
         mock_verify_card_authorization.side_effect = Exception("Verification error!")
 
         with caplog.at_level(logging.ERROR):
             run()
 
-        # Verify exception was logged
         assert "Unexpected error occurred!" in caplog.text
-
-        # Verify servo was NOT toggled
         mock_servo_lock.return_value.toggle.assert_not_called()
-
-        # Verify cleanup still occurred
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
 
@@ -307,7 +251,6 @@ class TestRun:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test run function when servo toggle raises an exception."""
-        # Setup mocks
         mock_rfid_reader.return_value.read_card.side_effect = [(123456789, "test_password"), KeyboardInterrupt()]
         mock_verify_card_authorization.return_value = True
         mock_servo_lock.return_value.toggle.side_effect = Exception("Servo error!")
@@ -315,15 +258,8 @@ class TestRun:
         with caplog.at_level(logging.ERROR):
             run()
 
-        # Verify card was verified
         mock_verify_card_authorization.assert_called_once_with(123456789, "test_password")
-
-        # Verify servo toggle was attempted
         mock_servo_lock.return_value.toggle.assert_called_once()
-
-        # Verify exception was logged
         assert "Unexpected error occurred!" in caplog.text
-
-        # Verify cleanup still occurred
         mock_servo_lock.return_value.cleanup.assert_called_once()
         mock_gpio.cleanup.assert_called_once()
