@@ -21,7 +21,6 @@ def run() -> None:
     logger.info("Initializing RFID Servo Lock System...")
     rfid_reader = RFIDReader()
 
-    # Convert pin number based on detected mode
     # Pin mapping reference:
     # - BCM Pin 18 = Physical Pin 12 = BOARD Pin 12
     # - This is GPIO18 on the Raspberry Pi
@@ -49,7 +48,6 @@ def run() -> None:
             if card_data:
                 card_id, card_password = card_data
 
-                # Verify the card password against stored hash
                 if verify_card_authorization(card_id, card_password):
                     logger.info("Card authorized! Access granted.")
                     servo_lock.toggle()

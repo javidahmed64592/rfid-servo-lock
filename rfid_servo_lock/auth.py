@@ -44,7 +44,6 @@ def save_authorized_card(card_id: int, password: str) -> None:
     """
     hashed_password = hash_password_with_card_id(password, card_id)
 
-    # Write the single authorized card configuration to .env file
     with open(".env", "w") as f:
         f.write("# RFID Servo Lock Environment Configuration\n")
         f.write(f"AUTHORIZED_CARD_ID={card_id}\n")
