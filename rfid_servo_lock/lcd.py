@@ -146,6 +146,13 @@ class LCD1602:
             logger.exception("Error during LCD cleanup!")
 
 
+def turn_off() -> None:
+    """Turn off the LCD display."""
+    lcd = LCD1602(address=0x27, backlight=True)
+    lcd.clear()
+    lcd.set_backlight(False)
+
+
 def debug() -> None:
     """Demonstrate LCD1602 functionality."""
     lcd = LCD1602(address=0x27, backlight=True)
@@ -173,7 +180,3 @@ def debug() -> None:
         logger.info("Exiting...")
     finally:
         lcd.cleanup()
-
-
-if __name__ == "__main__":
-    debug()
