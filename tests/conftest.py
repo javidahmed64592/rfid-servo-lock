@@ -83,10 +83,27 @@ class MockSimpleMFRC522:
         pass
 
 
+class MockSMBus:
+    """Mock SMBus class for I2C operations."""
+
+    def __init__(self, bus_number: int) -> None:
+        """Initialize mock SMBus."""
+        self.bus_number = bus_number
+
+    def write_byte(self, address: int, value: int) -> None:
+        """Mock write_byte method."""
+        pass
+
+    def close(self) -> None:
+        """Mock close method."""
+        pass
+
+
 mock_modules = {
     "RPi": MagicMock(),
     "RPi.GPIO": MockGPIO(),
     "mfrc522": MagicMock(SimpleMFRC522=MockSimpleMFRC522),
+    "smbus2": MagicMock(SMBus=MockSMBus),
 }
 
 for module_name, mock_module in mock_modules.items():
