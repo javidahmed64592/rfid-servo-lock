@@ -1,12 +1,11 @@
 """Unit tests for the rfid_servo_lock.servo module."""
 
-import logging
 from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rfid_servo_lock.servo import ServoLock, debug
+from rfid_servo_lock.servo import ServoLock
 
 
 @pytest.fixture
