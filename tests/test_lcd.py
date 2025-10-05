@@ -32,7 +32,7 @@ class TestLCD1602:
         """Test LCD1602 initialization."""
         lcd = LCD1602()
 
-        assert lcd.address == 0x27
+        assert lcd.address == 0x27  # noqa: PLR2004
         assert lcd.backlight_enabled is True
         mock_smbus.write_byte.assert_called()
 
@@ -76,9 +76,9 @@ class TestLCD1602:
     def test_write_exception(
         self, mock_smbus: MagicMock, mock_sleep: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """Test write method when an exception occurs."""
+        """Test write method when an exception occurs during character writing."""
         lcd = LCD1602()
-        mock_smbus.write_byte.side_effect = [None] * 20 + [Exception("I2C error")]
+        mock_smbus.write_byte.side_effect = [None] * 30 + [Exception("I2C error")]
 
         with caplog.at_level(logging.ERROR):
             lcd.write(0, 0, "Test")
