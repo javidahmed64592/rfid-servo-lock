@@ -78,7 +78,7 @@ class TestLCD1602:
     ) -> None:
         """Test write method when an exception occurs during character writing."""
         lcd = LCD1602()
-        mock_smbus.write_byte.side_effect = [None] * 30 + [Exception("I2C error")]
+        mock_smbus.write_byte.side_effect = [None] * 28 + [Exception("I2C error")]
 
         with caplog.at_level(logging.ERROR):
             lcd.write(0, 0, "Test")
