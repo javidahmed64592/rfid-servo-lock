@@ -52,7 +52,7 @@ jobs:
       - name: Check with mypy
         run: |
           uv run -m mypy .
-  test:
+  pytest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,25 +89,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version-file: ".python-version"
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           uv sync --extra dev
       - name: Check version consistency
         run: |
-          echo "Checking if versions in __init__.py, pyproject.toml, and uv.lock match..."
-          PACKAGE_NAME="example"
-          INIT_VERSION=$(uv run python -c "import ${PACKAGE_NAME}; print(${PACKAGE_NAME}.__version__)")
+          echo "Checking version consistency across all package files..."
+
+          PACKAGE_NAME="rfid-servo-lock"
           TOML_VERSION=$(uv run python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
           LOCK_VERSION=$(uv run python -c "import tomli; lock_data = tomli.load(open('uv.lock', 'rb')); pkg = next((p for p in lock_data['package'] if p['name'] == '${PACKAGE_NAME/_/-}'), None); print(pkg['version'] if pkg else 'not found')")
-          echo "Version in __init__.py: $INIT_VERSION"
+
           echo "Version in pyproject.toml: $TOML_VERSION"
           echo "Version in uv.lock: $LOCK_VERSION"
-          if [ "$INIT_VERSION" != "$TOML_VERSION" ]; then
-            echo "::error::Version mismatch! __init__.py has $INIT_VERSION but pyproject.toml has $TOML_VERSION"
+
+          if [ "$TOML_VERSION" != "$LOCK_VERSION" ]; then
+            echo "ERROR: Python version mismatch!"
+            echo "pyproject.toml has $TOML_VERSION but uv.lock has $LOCK_VERSION"
             exit 1
           fi
-          if [ "$INIT_VERSION" != "$LOCK_VERSION" ]; then
-            echo "::error::Version mismatch! __init__.py has $INIT_VERSION but uv.lock has $LOCK_VERSION"
-            exit 1
-          fi
-          echo "All versions match!"
+
+          echo "All versions match: $TOML_VERSION"
+          echo "Version consistency check passed!"
