@@ -15,7 +15,7 @@ logging.basicConfig(format="%(asctime)s %(message)s", datefmt="[%d-%m-%Y|%H:%M:%
 logger = logging.getLogger(__name__)
 
 
-def run() -> None:
+def run() -> None:  # noqa: PLR0915
     """Run the RFID-controlled servo lock system."""
     load_dotenv()
 
